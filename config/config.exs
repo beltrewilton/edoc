@@ -8,6 +8,19 @@
 import Config
 
 config :edoc, :scopes,
+  accounts_user: [
+    default: false,
+    module: Edoc.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :binary_id,
+    schema_table: :users,
+    test_data_fixture: Edoc.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
+config :edoc, :scopes,
   user: [
     default: true,
     module: Edoc.Accounts.Scope,
@@ -22,7 +35,9 @@ config :edoc, :scopes,
 
 config :edoc,
   ecto_repos: [Edoc.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime, binary_id: true]
+
+config :triplex, repo: Edoc.Repo
 
 # Configures the endpoint
 config :edoc, EdocWeb.Endpoint,

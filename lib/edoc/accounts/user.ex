@@ -2,12 +2,19 @@ defmodule Edoc.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
   schema "users" do
     field :email, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
+
+    many_to_many :company, Edoc.Accounts.Company,
+      join_through: "users_companies",
+      join_keys: [user_id: :id, company_id: :id],
+      on_replace: :delete
 
     timestamps(type: :utc_datetime)
   end
