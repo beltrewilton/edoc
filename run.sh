@@ -4,6 +4,6 @@ set -a
 [ -f .env ] && . .env
 set +a
 case "$(uname)" in
-  Linux) mix run --no-halt ;;
-  Darwin) iex -S mix run ;;
+  Linux) mix phx.server ;;
+  Darwin) iex -S mix phx.server ;;
 esac
