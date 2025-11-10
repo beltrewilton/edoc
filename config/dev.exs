@@ -2,10 +2,10 @@ import Config
 
 # Configure your database
 config :edoc, Edoc.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: System.fetch_env!("DB_USER"),
+  password: System.fetch_env!("DB_PASS"),
   hostname: "localhost",
-  database: "edoc_dev",
+  database: System.fetch_env!("DB_NAME"),
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
