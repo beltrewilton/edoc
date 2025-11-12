@@ -11,6 +11,7 @@ defmodule EdocWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_scope_for_user
+    plug EdocWeb.Plugs.PutTenantFromScope
   end
 
   pipeline :api do
@@ -27,6 +28,9 @@ defmodule EdocWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    
+    get "/google_auth_url", GoogleAuthController, :redirect_to
+    get "/auth/google/callback", GoogleAuthController, :callback
   end
 
   # Other scopes may use custom stacks.
@@ -60,6 +64,8 @@ defmodule EdocWeb.Router do
       on_mount: [{EdocWeb.UserAuth, :require_authenticated}] do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+      live "/companies", CompanyLive, :index
+      live "/companies/new", CompanyLive, :new
     end
 
     post "/users/update-password", UserSessionController, :update_password
@@ -73,6 +79,7 @@ defmodule EdocWeb.Router do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
+      live "/google_helper", GoogleLiveHelper, :index
     end
 
     post "/users/log-in", UserSessionController, :create

@@ -12,6 +12,7 @@ defmodule Edoc.Application do
       Edoc.Repo,
       {DNSCluster, query: Application.get_env(:edoc, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Edoc.PubSub},
+      {Finch, name: Edoc.Finch},
       # Start a worker by calling: Edoc.Worker.start_link(arg)
       # {Edoc.Worker, arg},
       # Start to serve requests, typically the last entry

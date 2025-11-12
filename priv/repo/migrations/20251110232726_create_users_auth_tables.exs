@@ -7,6 +7,8 @@ defmodule Edoc.Repo.Migrations.CreateUsersAuthTables do
     create table(:users, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :email, :citext, null: false
+      add :name, :string, null: false
+      add :tenant, :string
       add :hashed_password, :string
       add :confirmed_at, :utc_datetime
 
@@ -14,6 +16,7 @@ defmodule Edoc.Repo.Migrations.CreateUsersAuthTables do
     end
 
     create unique_index(:users, [:email])
+    create index(:users, [:tenant])
 
     create table(:users_tokens, primary_key: false) do
       add :id, :binary_id, primary_key: true

@@ -6,6 +6,14 @@ defmodule Edoc.Accounts.User do
   @foreign_key_type :binary_id
   schema "users" do
     field :email, :string
+    field :name, :string
+    field :tenant, :string
+    field :google_uid, :string
+    field :google_picture_url, :string
+    field :google_access_token, :string
+    field :google_refresh_token, :string
+    field :google_token_expires_at, :utc_datetime
+    field :google_scope, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
@@ -83,6 +91,43 @@ defmodule Edoc.Accounts.User do
     |> cast(attrs, [:password])
     |> validate_confirmation(:password, message: "does not match password")
     |> validate_password(opts)
+  end
+
+  @doc """
+  Changeset for updating the tenant field.
+  """
+  def tenant_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:tenant])
+    |> validate_required([:tenant])
+    |> validate_length(:tenant, max: 160)
+  end
+
+  @doc """
+  Changeset for upserting a user from Google OAuth info.
+
+  It casts core identity fields plus OAuth token metadata. Password is not used.
+  """
+  def google_oauth_changeset(user, attrs) do
+    user
+    |> cast(attrs, [
+      :email,
+      :name,
+      # :tenant,
+      :google_uid,
+      :google_picture_url,
+      :google_access_token,
+      :google_refresh_token,
+      :google_token_expires_at,
+      :google_scope,
+      :confirmed_at
+    ])
+    |> validate_required([:email, :name, :google_uid])
+    |> validate_format(:email, ~r/^[^@,;\s]+@[^@,;\s]+$/,
+      message: "must have the @ sign and no spaces"
+    )
+    |> validate_length(:email, max: 160)
+    |> unique_constraint(:email)
   end
 
   defp validate_password(changeset, opts) do

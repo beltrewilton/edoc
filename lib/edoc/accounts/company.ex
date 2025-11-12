@@ -1,5 +1,6 @@
 defmodule Edoc.Accounts.Company do
   use Ecto.Schema
+  import Ecto.Changeset
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -23,5 +24,29 @@ defmodule Edoc.Accounts.Company do
     has_many :transactions, Edoc.Transactions.Transaction
 
     timestamps(type: :utc_datetime)
+  end
+
+  @doc """
+  Changeset for creating/updating a company.
+
+  Note: Associations such as users should be set programatically with
+  Ecto.Changeset.put_assoc/3 by callers (e.g. to associate the current user).
+  """
+  def changeset(company, attrs) do
+    company
+    |> cast(attrs, [
+      :rnc,
+      :company_name,
+      :access_token,
+      :active,
+      :connected,
+      :odoo_url,
+      :odoo_db,
+      :odoo_user,
+      :odoo_apikey
+    ])
+    |> validate_required([:rnc, :company_name])
+    |> validate_length(:rnc, max: 50)
+    |> validate_length(:company_name, max: 160)
   end
 end

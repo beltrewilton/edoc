@@ -10,7 +10,7 @@ defmodule Edoc.Transactions.Transaction do
     field :status, :string
     field :occurred_at, :utc_datetime
 
-    belongs_to :company, Edoc.Companies.Company
+    belongs_to :company, Edoc.Accounts.Company
 
     timestamps(type: :utc_datetime)
   end

@@ -219,6 +219,13 @@ defmodule EdocWeb.UserAuth do
     socket = mount_current_scope(socket, session)
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
+      # Ensure tenant is set on the LiveView process when authenticated
+      case get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)]) do
+        tenant when is_binary(tenant) and tenant != "" ->
+          IO.inspect(tenant, label: "Tenant")
+          Edoc.TenantContext.put_tenant(tenant)
+        _ -> :ok
+      end
       {:cont, socket}
     else
       socket =
@@ -252,7 +259,14 @@ defmodule EdocWeb.UserAuth do
           Accounts.get_user_by_session_token(user_token)
         end || {nil, nil}
 
-      Scope.for_user(user)
+      scope = Scope.for_user(user)
+
+      # Ensure the LiveView process has the tenant set for multi-tenant Repo prefixes
+      if is_struct(user) and is_binary(user.tenant) and user.tenant != "" do
+        Edoc.TenantContext.put_tenant(user.tenant)
+      end
+
+      scope
     end)
   end
 
@@ -269,6 +283,11 @@ defmodule EdocWeb.UserAuth do
   """
   def require_authenticated_user(conn, _opts) do
     if conn.assigns.current_scope && conn.assigns.current_scope.user do
+      # Ensure tenant is set on the current request process when authenticated
+      case get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)]) do
+        tenant when is_binary(tenant) and tenant != "" -> Edoc.TenantContext.put_tenant(tenant)
+        _ -> :ok
+      end
       conn
     else
       conn

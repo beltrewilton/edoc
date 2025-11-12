@@ -68,7 +68,10 @@ defmodule Edoc.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:triplex, "~> 1.3"},
-      {:xmlrpc, "~> 1.4"}
+      {:xmlrpc, "~> 1.4"},
+      {:corsica, "~> 2.1"},
+      {:finch, "~> 0.20"},
+      {:oauth2, "~> 2.1"}
     ]
   end
 

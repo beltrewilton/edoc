@@ -8,12 +8,23 @@ defmodule Edoc.OdooAutomationClient do
       uid = Odoo.authenticate!(client)
       field_id = Odoo.create_edoc_field(client, uid)
       Odoo.create_edoc_selection_values(client, uid, field_id)
-      field_id = Odoo.create_edoc_field(client, uid, "x_studio_e_doc_bill", "Tipo de e-DOC Gastos", "Identificadorde Gastos  del tipo de e-DOC requerido para factura electrónica.")
+      field_id = Odoo.create_edoc_field(client, uid, "x_studio_e_doc_bill", "Tipo de e-DOC Gastos", "Identificadorde Gastos del tipo de e-DOC requerido para factura electrónica.")
       Odoo.create_edoc_selection_values(client, uid, field_id, false)
       Odoo.create_edoc_view_inheritance(client, uid)
       Odoo.create_state_change_automation(client, uid, "Automation-DGII", "Send Webhook Notification (dgii-gw)", "account.move", "posted")
 
       invoice_items = Odoo.get_invoice_data(client, uid, 5523)
+
+
+      # RESET:
+      # Studio: remove field from the UI
+      # Technical > Automation > Automation Rules: delete Automation-DGII-Gateway
+      #                              deleted-child: Send Webhook Notification (dgii-gw)
+      # Technical > Database estructure > Fields : delete x_studio_e_doc (Journal Entry)
+      # Technical > User interface > Views: delete account_move_form_edoc_field
+      # Technical > Views : search `account.move.form`,
+      #         Inherited Views (tab) - delete Odoo Studio: account.move.form customization
+      #         Test: From invoice > go to studio
 
 
   All calls that hit Odoo (XML-RPC /object) receive `uid` explicitly.

@@ -16,6 +16,20 @@ defmodule EdocWeb.UserLive.Settings do
         </.header>
       </div>
 
+      <.form for={@tenant_form} id="tenant_form" phx-submit="update_tenant" phx-change="validate_tenant">
+        <.input
+          field={@tenant_form[:tenant]}
+          type="text"
+          label="Tenant"
+          readonly={@tenant_locked}
+          disabled={@tenant_locked}
+          required
+        />
+        <.button variant="primary" phx-disable-with="Saving..." disabled={@tenant_locked}>Update Tenant</.button>
+      </.form>
+
+      <div class="divider" />
+
       <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
         <.input
           field={@email_form[:email]}
@@ -84,12 +98,15 @@ defmodule EdocWeb.UserLive.Settings do
     user = socket.assigns.current_scope.user
     email_changeset = Accounts.change_user_email(user, %{}, validate_unique: false)
     password_changeset = Accounts.change_user_password(user, %{}, hash_password: false)
+    tenant_changeset = Accounts.change_user_tenant(user, %{})
 
     socket =
       socket
       |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))
+      |> assign(:tenant_form, to_form(tenant_changeset))
+      |> assign(:tenant_locked, Triplex.exists?(user.tenant))
       |> assign(:trigger_submit, false)
 
     {:ok, socket}
@@ -126,6 +143,61 @@ defmodule EdocWeb.UserLive.Settings do
 
       changeset ->
         {:noreply, assign(socket, :email_form, to_form(changeset, action: :insert))}
+    end
+  end
+
+  def handle_event("validate_tenant", params, socket) do
+    %{"user" => user_params} = params
+
+    tenant_form =
+      socket.assigns.current_scope.user
+      |> Accounts.change_user_tenant(user_params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, tenant_form: tenant_form)}
+  end
+
+  def handle_event("update_tenant", params, socket) do
+    %{"user" => user_params} = params
+    user = socket.assigns.current_scope.user
+    true = Accounts.sudo_mode?(user)
+
+    if socket.assigns.tenant_locked do
+      {:noreply, socket}
+    else
+      case Accounts.update_user_tenant(user, user_params) do
+        {:ok, user} ->
+          tenant = Map.get(user_params, "tenant")
+
+          case Triplex.exists?(tenant) do
+            true ->
+              {:noreply,
+               socket
+               |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
+               |> assign(:tenant_locked, true)
+               |> put_flash(:info, "Tenant already exists and is now locked.")}
+
+            false ->
+              case Triplex.create(tenant) do
+                {:ok, _} ->
+                  {:noreply,
+                   socket
+                   |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
+                   |> assign(:tenant_locked, true)
+                   |> put_flash(:info, "Tenant updated and created successfully." )}
+
+                {:error, reason} ->
+                  {:noreply,
+                   socket
+                   |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
+                   |> put_flash(:error, "Failed to create tenant: #{reason}")}
+              end
+          end
+
+        {:error, changeset} ->
+          {:noreply, assign(socket, tenant_form: to_form(changeset, action: :insert))}
+      end
     end
   end
 

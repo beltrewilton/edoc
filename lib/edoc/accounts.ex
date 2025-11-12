@@ -7,6 +7,10 @@ defmodule Edoc.Accounts do
   alias Edoc.Repo
 
   alias Edoc.Accounts.{User, UserToken, UserNotifier}
+  alias Edoc.Accounts.Company
+  alias Edoc.Accounts.Scope
+  alias Ecto.Changeset
+  alias Edoc.TenantContext
 
   ## Database getters
 
@@ -281,6 +285,81 @@ defmodule Edoc.Accounts do
     :ok
   end
 
+  ## Tenant settings
+
+  @doc """
+  Returns a changeset for changing the user's tenant.
+  """
+  def change_user_tenant(user, attrs \\ %{}) do
+    User.tenant_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user's tenant.
+  """
+  def update_user_tenant(user, attrs) do
+    user
+    |> User.tenant_changeset(attrs)
+    |> Repo.update()
+  end
+
+  ## Google OAuth
+
+  @doc """
+  Upserts a user from Google OAuth userinfo and token map.
+
+  Expected user_info keys: "sub" (google uid), "email", "name", "picture".
+  Expected token map keys: "access_token", optionally "refresh_token", "expires_in", and "scope".
+
+  This function ensures the user has a tenant (derived from email domain) and is confirmed.
+  """
+  def upsert_user_from_google(user_info, token_map) when is_map(user_info) and is_map(token_map) do
+    google_uid = user_info["sub"] || user_info["id"]
+    email = user_info["email"]
+    name = user_info["name"] || email
+    picture = user_info["picture"]
+
+    # derive tenant from email domain, fallback to "public"
+    tenant =
+      case String.split(email || "", "@") do
+        [_local, domain] when is_binary(domain) and byte_size(domain) > 0 -> domain
+        _ -> "public"
+      end
+
+    expires_at =
+      case token_map["expires_in"] do
+        n when is_integer(n) -> DateTime.add(DateTime.utc_now(:second), n, :second)
+        n when is_binary(n) ->
+          case Integer.parse(n) do
+            {int, _} -> DateTime.add(DateTime.utc_now(:second), int, :second)
+            :error -> nil
+          end
+        _ -> nil
+      end
+
+    attrs = %{
+      email: email,
+      name: name,
+      tenant: tenant,
+      google_uid: google_uid,
+      google_picture_url: picture,
+      google_access_token: token_map["access_token"],
+      google_refresh_token: token_map["refresh_token"],
+      google_token_expires_at: expires_at,
+      google_scope: token_map["scope"],
+      confirmed_at: DateTime.utc_now(:second)
+    }
+
+    Repo.transact(fn ->
+      user = Repo.get_by(User, google_uid: google_uid) || Repo.get_by(User, email: email) || %User{}
+
+      case (user.__struct__ == User && user.id && :update) || :insert do
+        :update -> Repo.update(User.google_oauth_changeset(user, attrs))
+        :insert -> Repo.insert(User.google_oauth_changeset(user, attrs))
+      end
+    end)
+  end
+
   ## Token helper
 
   defp update_user_and_delete_all_tokens(changeset) do
@@ -294,4 +373,75 @@ defmodule Edoc.Accounts do
       end
     end)
   end
+
+  ## Companies (multi-tenant)
+
+  @doc """
+  Returns an Ecto changeset for a new company.
+  """
+  def change_company(company \\ %Company{}, attrs \\ %{}) do
+    Company.changeset(company, attrs)
+  end
+
+  @doc """
+  Creates a company in the current tenant, associating it to the current user.
+
+  Always pass the current_scope as the first argument to respect authorization
+  and scoping rules. The insert is executed with the tenant prefix.
+  """
+  def create_company(%Scope{user: %User{} = user}, attrs) when is_map(attrs) do
+    tenant = TenantContext.get_tenant()
+    IO.inspect(tenant, label: "Company tenant? ")
+
+    %Company{}
+    |> Company.changeset(attrs)
+    |> Changeset.put_assoc(:users, [user])
+    |> Repo.insert(prefix: tenant)
+  end
+
+  def create_company(_scope, _attrs), do: {:error, :unauthorized}
+
+  @doc """
+  Lists companies for the current user in the current tenant.
+  """
+  def list_companies(%Scope{user: %User{} = user}) do
+    tenant = TenantContext.get_tenant()
+    user
+    |> Ecto.assoc(:company)
+    |> Repo.all(prefix: tenant)
+  end
+
+  def list_companies(_), do: []
+
+  @doc """
+  Gets a single company by id in the current tenant.
+  """
+  def get_company!(id) do
+    tenant = TenantContext.get_tenant()
+    Repo.get!(Company, id, prefix: tenant)
+  end
+
+  @doc """
+  Placeholder connect action for a company.
+  """
+  def connect_company(%Scope{user: %User{}}, %Company{} = _company) do
+    {:ok, :placeholder}
+  end
+
+  def connect_company(_, _), do: {:error, :unauthorized}
+
+  @doc """
+  Mark a company's `connected` flag. Requires a valid current scope.
+
+  Uses the current tenant prefix from `TenantContext`.
+  """
+  def mark_company_connected(%Scope{user: %User{}}, %Company{} = company, connected \\ true) do
+    tenant = TenantContext.get_tenant()
+
+    company
+    |> Changeset.change(%{connected: connected})
+    |> Repo.update(prefix: tenant)
+  end
+
+  def mark_company_connected(_, _, _), do: {:error, :unauthorized}
 end

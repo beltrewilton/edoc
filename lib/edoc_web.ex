@@ -86,6 +86,7 @@ defmodule EdocWeb do
       import Phoenix.HTML
       # Core UI components
       import EdocWeb.CoreComponents
+      use EdocWeb.DaisyUIComponents, core_components: false
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
