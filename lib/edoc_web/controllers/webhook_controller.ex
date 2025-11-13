@@ -4,6 +4,8 @@ defmodule EdocWeb.WebhookController do
   alias Edoc.Accounts.{Company, User}
   alias Edoc.Transaction
   alias Edoc.Repo
+  alias Edoc.RequestLogger
+  alias Edoc.OdooAutomationClient, as: Odoo
 
   @body_opts [length: 10_000_000, read_timeout: 15_000]
 
@@ -12,7 +14,10 @@ defmodule EdocWeb.WebhookController do
          {:ok, user} <- fetch_user(user_id),
          {:ok, tenant} <- tenant_for_user(user),
          {:ok, company} <- fetch_company(company_id, tenant),
-         {:ok, _record} <- insert_transaction(company, tenant, payload) do
+         {:ok, enriched_payload, client_info} <- enrich_payload(conn, payload, company),
+         {:ok, _record} <- insert_transaction(company, tenant, enriched_payload) do
+      trigger_request_fmp(client_info, payload["_id"], enriched_payload)
+
       conn
       |> put_status(:created)
       |> json(%{status: "accepted"})
@@ -94,4 +99,81 @@ defmodule EdocWeb.WebhookController do
       end)
     end)
   end
+
+  defp enrich_payload(conn, payload, company) do
+    client = Odoo.new(company.odoo_url, company.odoo_db, company.odoo_user, company.odoo_apikey)
+    uid = Odoo.authenticate!(client)
+
+    payload =
+      case payload["_id"] do
+        nil ->
+          payload
+
+        invoice_id ->
+          invoice_items =
+            client
+            |> Odoo.get_invoice_data(uid, invoice_id)
+            |> Map.get(:lines, [])
+            |> Enum.reject(&match?(%{"product_id" => false}, &1))
+
+          Map.put(payload, "invoice_items", invoice_items)
+      end
+
+    entry = build_log_entry(conn, payload)
+
+    case RequestLogger.append(entry) do
+      :ok -> {:ok, payload, {client, uid}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp build_log_entry(conn, payload) do
+    headers_map =
+      conn.req_headers
+      |> Map.new(fn {key, value} -> {"header_" <> key, value} end)
+
+    base_entry = %{
+      ts: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
+      ip: format_ip(conn.remote_ip),
+      method: conn.method,
+      path: conn.request_path,
+      headers: Map.new(conn.req_headers),
+      body: payload
+    }
+
+    Map.merge(base_entry, headers_map)
+  end
+
+  defp trigger_request_fmp({_client, _uid}, nil, _payload), do: :ok
+
+  defp trigger_request_fmp({client, uid}, invoice_id, payload) do
+    Task.start(fn ->
+      Process.sleep(5_000)
+      request_fmp_api(client, uid, invoice_id, payload)
+    end)
+  end
+
+  defp format_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
+  defp format_ip(other), do: to_string(:inet.ntoa(other))
+
+  defp request_fmp_api(
+         %Odoo{} = client,
+         uid,
+         invoice_id,
+         %{
+           "x_studio_e_doc_bill" => bill,
+           "x_studio_e_doc_inv" => inv
+         }
+       ) do
+    e_doc =
+      if bill == false do
+        "#{inv}000000067"
+      else
+        "#{bill}00000078"
+      end
+
+    Odoo.append_to_invoice_name(client, uid, invoice_id, e_doc)
+  end
+
+  defp request_fmp_api(_, _, _, _), do: :ok
 end
