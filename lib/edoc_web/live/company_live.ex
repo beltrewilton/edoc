@@ -93,14 +93,18 @@ defmodule EdocWeb.CompanyLive do
       true ->
         # Initialize UI progress for this company
         socket =
-          assign(socket, :automation_progress,
-            Map.put(socket.assigns.automation_progress, company.id, %{current: 0, status: :exchanging})
+          assign(
+            socket,
+            :automation_progress,
+            Map.put(socket.assigns.automation_progress, company.id, %{
+              current: 0,
+              status: :exchanging
+            })
           )
 
         # Kick off async task to run the Odoo setup sequence and stream progress
         parent = self()
         company_id = company.id
-        company_name = company.company_name
 
         Task.start(fn ->
           try do
@@ -191,9 +195,14 @@ defmodule EdocWeb.CompanyLive do
           socket
           |> stream_insert(:companies, updated_company)
           |> update(:automation_progress, fn prog ->
-            Map.update(prog, company_id, %{current: length(@automation_step_labels), status: :success}, fn _ ->
-              %{current: length(@automation_step_labels), status: :success}
-            end)
+            Map.update(
+              prog,
+              company_id,
+              %{current: length(@automation_step_labels), status: :success},
+              fn _ ->
+                %{current: length(@automation_step_labels), status: :success}
+              end
+            )
           end)
           |> put_flash(:info, "Odoo automation completed for #{updated_company.company_name}")
 
@@ -220,9 +229,15 @@ defmodule EdocWeb.CompanyLive do
         </div>
 
         <div id="companies" phx-update="stream" class="grid grid-cols-1 gap-4">
-          <div class="hidden only:block col-span-full text-center text-sm text-zinc-600">No companies yet</div>
+          <div class="hidden only:block col-span-full text-center text-sm text-zinc-600">
+            No companies yet
+          </div>
 
-          <.card :for={{id, company} <- @streams.companies} id={id} class="bg-base-100 w-full shadow-xl">
+          <.card
+            :for={{id, company} <- @streams.companies}
+            id={id}
+            class="bg-base-100 w-full shadow-xl"
+          >
             <:card_title class="text-base">{company.company_name}</:card_title>
             <:card_body>
               <div class="flex items-start gap-3">
@@ -235,13 +250,29 @@ defmodule EdocWeb.CompanyLive do
                   <p class="text-xs text-zinc-500">RNC: {company.rnc || "—"}</p>
 
                   <div class="mt-2 flex flex-wrap gap-2">
-                    <span class={["badge badge-sm", company.active && "badge-success", !company.active && "badge-ghost"]}>Active</span>
-                    <span class={["badge badge-sm", company.connected && "badge-success", !company.connected && "badge-ghost"]}>Connected</span>
+                    <span class={[
+                      "badge badge-sm",
+                      company.active && "badge-success",
+                      !company.active && "badge-ghost"
+                    ]}>
+                      Active
+                    </span>
+                    <span class={[
+                      "badge badge-sm",
+                      company.connected && "badge-success",
+                      !company.connected && "badge-ghost"
+                    ]}>
+                      Connected
+                    </span>
                   </div>
 
                   <div class="mt-3 text-xs space-y-1">
-                    <div class="truncate"><span class="font-medium">Odoo URL:</span> {company.odoo_url || "—"}</div>
-                    <div class="truncate"><span class="font-medium">Odoo User:</span> {company.odoo_user || "—"}</div>
+                    <div class="truncate">
+                      <span class="font-medium">Odoo URL:</span> {company.odoo_url || "—"}
+                    </div>
+                    <div class="truncate">
+                      <span class="font-medium">Odoo User:</span> {company.odoo_user || "—"}
+                    </div>
                   </div>
                   <% prog = Map.get(@automation_progress, company.id, %{current: 0, status: :idle}) %>
                   <div class="mt-4">
@@ -250,18 +281,37 @@ defmodule EdocWeb.CompanyLive do
                         <% completed? = prog.current >= idx %>
                         <li>
                           <hr :if={idx > 1} class={[completed? && "bg-primary"]} />
-                          <div :if={rem(idx, 2) == 1} class="timeline-start timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words">{label}</div>
-                          <div class="timeline-middle">
-                            <.icon name="hero-check-circle" class={["h-4 w-4 sm:h-5 sm:w-5", completed? && "text-primary", !completed? && "text-base-content/40"]} />
+                          <div
+                            :if={rem(idx, 2) == 1}
+                            class="timeline-start timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words"
+                          >
+                            {label}
                           </div>
-                          <div :if={rem(idx, 2) == 0} class="timeline-end timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words">{label}</div>
+                          <div class="timeline-middle">
+                            <.icon
+                              name="hero-check-circle"
+                              class={[
+                                "h-4 w-4 sm:h-5 sm:w-5",
+                                completed? && "text-primary",
+                                !completed? && "text-base-content/40"
+                              ]}
+                            />
+                          </div>
+                          <div
+                            :if={rem(idx, 2) == 0}
+                            class="timeline-end timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words"
+                          >
+                            {label}
+                          </div>
                           <hr class={[completed? && "bg-primary"]} />
                         </li>
                       <% end %>
                     </ul>
                     <%= case prog.status do %>
                       <% :exchanging -> %>
-                        <p class="mt-2 text-xs text-zinc-500">Setting up Odoo: step {prog.current} of {length(automation_step_labels())}...</p>
+                        <p class="mt-2 text-xs text-zinc-500">
+                          Setting up Odoo: step {prog.current} of {length(automation_step_labels())}...
+                        </p>
                       <% {:error, reason} -> %>
                         <p class="mt-2 text-xs text-red-600">Error: {reason}</p>
                       <% :success -> %>
@@ -272,16 +322,26 @@ defmodule EdocWeb.CompanyLive do
                   </div>
                 </div>
               </div>
-
             </:card_body>
             <:card_actions class="justify-end mt-2">
+              <.button
+                class="btn btn-ghost btn-sm gap-2 text-xs font-semibold uppercase tracking-wide"
+                navigate={~p"/companies/#{company.id}/transactions"}
+              >
+                <.icon name="hero-receipt-percent" class="size-4" /> Watch Transactions
+              </.button>
               <%= unless company.connected or match?(%{status: :success}, @automation_progress[company.id] || %{}) do %>
                 <.button
                   color="primary"
                   phx-click="connect"
                   phx-value-id={company.id}
                   phx-disable-with="Connecting..."
-                  disabled={case @automation_progress[company.id] do %{status: :exchanging} -> true; _ -> false end}
+                  disabled={
+                    case @automation_progress[company.id] do
+                      %{status: :exchanging} -> true
+                      _ -> false
+                    end
+                  }
                 >
                   Connect
                 </.button>
@@ -313,13 +373,28 @@ defmodule EdocWeb.CompanyLive do
         <h1 class="text-2xl font-semibold mb-6">Create Company</h1>
 
         <.form for={@form} id="company-form" phx-change="validate" phx-submit="save" class="space-y-4">
-          <.input field={@form[:company_name]} type="text" label="Company Name" placeholder="Acme Corp" />
+          <.input
+            field={@form[:company_name]}
+            type="text"
+            label="Company Name"
+            placeholder="Acme Corp"
+          />
           <.input field={@form[:rnc]} type="text" label="RNC" placeholder="RNC/Tax ID" />
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <.input field={@form[:odoo_url]} type="text" label="Odoo URL" placeholder="https://odoo.example.com" />
+            <.input
+              field={@form[:odoo_url]}
+              type="text"
+              label="Odoo URL"
+              placeholder="https://odoo.example.com"
+            />
             <.input field={@form[:odoo_db]} type="text" label="Odoo DB" placeholder="my_db" />
-            <.input field={@form[:odoo_user]} type="text" label="Odoo User" placeholder="user@example.com" />
+            <.input
+              field={@form[:odoo_user]}
+              type="text"
+              label="Odoo User"
+              placeholder="user@example.com"
+            />
             <.input field={@form[:odoo_apikey]} type="password" label="Odoo API Key" />
           </div>
 
@@ -327,7 +402,9 @@ defmodule EdocWeb.CompanyLive do
 
           <div class="flex items-center gap-3 pt-2">
             <.button type="submit">Save</.button>
-            <.link navigate={~p"/companies"} class="text-sm text-zinc-600 hover:text-zinc-900">Cancel</.link>
+            <.link navigate={~p"/companies"} class="text-sm text-zinc-600 hover:text-zinc-900">
+              Cancel
+            </.link>
           </div>
         </.form>
       </div>

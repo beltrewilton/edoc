@@ -20,4 +20,3 @@ defmodule EdocWeb.Plugs.PutTenantFromScope do
     conn
   end
 end
-

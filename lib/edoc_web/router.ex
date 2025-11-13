@@ -28,7 +28,7 @@ defmodule EdocWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    
+
     get "/google_auth_url", GoogleAuthController, :redirect_to
     get "/auth/google/callback", GoogleAuthController, :callback
   end
@@ -66,6 +66,7 @@ defmodule EdocWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/companies", CompanyLive, :index
       live "/companies/new", CompanyLive, :new
+      live "/companies/:id/transactions", CompanyTransactionsLive, :transactions
     end
 
     post "/users/update-password", UserSessionController, :update_password

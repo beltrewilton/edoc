@@ -217,7 +217,9 @@ defmodule EdocWeb.DaisyUIComponents.Input do
       |> assign_new(:value, fn -> nil end)
 
     ~H"""
-    <.textarea id={@id} name={@name} class={@class} color={@color} ghost={@ghost} {@rest}>{Phoenix.HTML.Form.normalize_value(@type, @value)}</.textarea>
+    <.textarea id={@id} name={@name} class={@class} color={@color} ghost={@ghost} {@rest}>
+      {Phoenix.HTML.Form.normalize_value(@type, @value)}
+    </.textarea>
     """
   end
 

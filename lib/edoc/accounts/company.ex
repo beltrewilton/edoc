@@ -21,7 +21,7 @@ defmodule Edoc.Accounts.Company do
       join_keys: [company_id: :id, user_id: :id],
       on_replace: :delete
 
-    has_many :transactions, Edoc.Transactions.Transaction
+    has_many :transactions, Edoc.Transaction
 
     timestamps(type: :utc_datetime)
   end

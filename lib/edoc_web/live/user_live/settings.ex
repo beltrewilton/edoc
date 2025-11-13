@@ -16,7 +16,12 @@ defmodule EdocWeb.UserLive.Settings do
         </.header>
       </div>
 
-      <.form for={@tenant_form} id="tenant_form" phx-submit="update_tenant" phx-change="validate_tenant">
+      <.form
+        for={@tenant_form}
+        id="tenant_form"
+        phx-submit="update_tenant"
+        phx-change="validate_tenant"
+      >
         <.input
           field={@tenant_form[:tenant]}
           type="text"
@@ -25,7 +30,9 @@ defmodule EdocWeb.UserLive.Settings do
           disabled={@tenant_locked}
           required
         />
-        <.button variant="primary" phx-disable-with="Saving..." disabled={@tenant_locked}>Update Tenant</.button>
+        <.button variant="primary" phx-disable-with="Saving..." disabled={@tenant_locked}>
+          Update Tenant
+        </.button>
       </.form>
 
       <div class="divider" />
@@ -185,7 +192,7 @@ defmodule EdocWeb.UserLive.Settings do
                    socket
                    |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
                    |> assign(:tenant_locked, true)
-                   |> put_flash(:info, "Tenant updated and created successfully." )}
+                   |> put_flash(:info, "Tenant updated and created successfully.")}
 
                 {:error, reason} ->
                   {:noreply,

@@ -12,7 +12,8 @@ defmodule EdocWeb.GoogleAuthController do
   def callback(conn, %{"code" => code}) do
     with {:ok, token_map} <- exchange_code_for_token(code),
          {:ok, user_info} <- fetch_user_info(token_map["access_token"]),
-         {:ok, {%Accounts.User{} = user, _}} <- normalize_upsert_result(Accounts.upsert_user_from_google(user_info, token_map)) do
+         {:ok, {%Accounts.User{} = user, _}} <-
+           normalize_upsert_result(Accounts.upsert_user_from_google(user_info, token_map)) do
       conn
       |> put_flash(:info, "Logged in with Google")
       |> UserAuth.log_in_user(user, %{})
@@ -30,7 +31,10 @@ defmodule EdocWeb.GoogleAuthController do
   end
 
   defp normalize_upsert_result({:ok, %Accounts.User{} = user}), do: {:ok, {user, nil}}
-  defp normalize_upsert_result({:ok, {user, _} = tuple}) when is_struct(user, Accounts.User), do: {:ok, tuple}
+
+  defp normalize_upsert_result({:ok, {user, _} = tuple}) when is_struct(user, Accounts.User),
+    do: {:ok, tuple}
+
   defp normalize_upsert_result(other), do: other
 
   defp exchange_code_for_token(code) do

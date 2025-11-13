@@ -14,4 +14,3 @@ defmodule Edoc.Repo.Migrations.AddGoogleOauthFieldsToUsers do
     create unique_index(:users, [:google_uid])
   end
 end
-

@@ -26,7 +26,10 @@ defmodule EdocWeb.UserLive.Login do
         </div>
 
         <div>
-          <a href={~p"/google_auth_url"} class="btn btn-primary w-full flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]">
+          <a
+            href={~p"/google_auth_url"}
+            class="btn btn-primary w-full flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
+          >
             <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5" />
             <span>Continue with Google</span>
           </a>

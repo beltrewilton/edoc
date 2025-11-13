@@ -224,8 +224,11 @@ defmodule EdocWeb.UserAuth do
         tenant when is_binary(tenant) and tenant != "" ->
           IO.inspect(tenant, label: "Tenant")
           Edoc.TenantContext.put_tenant(tenant)
-        _ -> :ok
+
+        _ ->
+          :ok
       end
+
       {:cont, socket}
     else
       socket =
@@ -288,6 +291,7 @@ defmodule EdocWeb.UserAuth do
         tenant when is_binary(tenant) and tenant != "" -> Edoc.TenantContext.put_tenant(tenant)
         _ -> :ok
       end
+
       conn
     else
       conn

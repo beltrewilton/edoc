@@ -49,7 +49,6 @@ defmodule EdocWeb.GoogleLiveHelper do
     end
   end
 
-
   defp exchange_code_for_token(code) do
     form = %{
       "client_id" => System.fetch_env!("GOOGLE_CLIENT"),
@@ -102,7 +101,6 @@ defmodule EdocWeb.GoogleLiveHelper do
   defp google_redirect_uri do
     "https://d500aa125a00.ngrok-free.app/auth/google/callback"
   end
-
 
   @impl true
   def render(assigns) do

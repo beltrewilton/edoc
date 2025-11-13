@@ -11,6 +11,7 @@ defmodule Edoc.Accounts do
   alias Edoc.Accounts.Scope
   alias Ecto.Changeset
   alias Edoc.TenantContext
+  alias Edoc.Transaction
 
   ## Database getters
 
@@ -313,7 +314,8 @@ defmodule Edoc.Accounts do
 
   This function ensures the user has a tenant (derived from email domain) and is confirmed.
   """
-  def upsert_user_from_google(user_info, token_map) when is_map(user_info) and is_map(token_map) do
+  def upsert_user_from_google(user_info, token_map)
+      when is_map(user_info) and is_map(token_map) do
     google_uid = user_info["sub"] || user_info["id"]
     email = user_info["email"]
     name = user_info["name"] || email
@@ -328,13 +330,17 @@ defmodule Edoc.Accounts do
 
     expires_at =
       case token_map["expires_in"] do
-        n when is_integer(n) -> DateTime.add(DateTime.utc_now(:second), n, :second)
+        n when is_integer(n) ->
+          DateTime.add(DateTime.utc_now(:second), n, :second)
+
         n when is_binary(n) ->
           case Integer.parse(n) do
             {int, _} -> DateTime.add(DateTime.utc_now(:second), int, :second)
             :error -> nil
           end
-        _ -> nil
+
+        _ ->
+          nil
       end
 
     attrs = %{
@@ -351,7 +357,8 @@ defmodule Edoc.Accounts do
     }
 
     Repo.transact(fn ->
-      user = Repo.get_by(User, google_uid: google_uid) || Repo.get_by(User, email: email) || %User{}
+      user =
+        Repo.get_by(User, google_uid: google_uid) || Repo.get_by(User, email: email) || %User{}
 
       case (user.__struct__ == User && user.id && :update) || :insert do
         :update -> Repo.update(User.google_oauth_changeset(user, attrs))
@@ -406,6 +413,7 @@ defmodule Edoc.Accounts do
   """
   def list_companies(%Scope{user: %User{} = user}) do
     tenant = TenantContext.get_tenant()
+
     user
     |> Ecto.assoc(:company)
     |> Repo.all(prefix: tenant)
@@ -420,6 +428,41 @@ defmodule Edoc.Accounts do
     tenant = TenantContext.get_tenant()
     Repo.get!(Company, id, prefix: tenant)
   end
+
+  @doc """
+  Gets a company that belongs to the given scope's user in the current tenant.
+
+  Raises if the company is not found or not accessible to the scope.
+  """
+  def get_company_for_scope!(%Scope{user: %User{} = user}, company_id) do
+    tenant = TenantContext.get_tenant()
+
+    user
+    |> Ecto.assoc(:company)
+    |> where([c], c.id == ^company_id)
+    |> Repo.one!(prefix: tenant)
+  end
+
+  def get_company_for_scope!(_, _), do: raise(Ecto.NoResultsError, queryable: Company)
+
+  @doc """
+  Lists transactions for a company that belongs to the given scope.
+  """
+  def list_company_transactions(%Scope{} = _scope, %Company{} = company) do
+    tenant = TenantContext.get_tenant()
+
+    Transaction
+    |> where(company_id: ^company.id)
+    |> order_by(desc: :inserted_at)
+    |> Repo.all(prefix: tenant)
+  end
+
+  def list_company_transactions(%Scope{} = scope, company_id) when is_binary(company_id) do
+    company = get_company_for_scope!(scope, company_id)
+    list_company_transactions(scope, company)
+  end
+
+  def list_company_transactions(_, _), do: []
 
   @doc """
   Placeholder connect action for a company.

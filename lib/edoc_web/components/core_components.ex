@@ -89,7 +89,9 @@ defmodule EdocWeb.CoreComponents do
       <.button navigate={~p"/"}>Home</.button>
   """
   attr :rest, :global,
-    include: ~w(href navigate patch method download name value disabled phx-click phx-value-id phx-disable-with)
+    include:
+      ~w(href navigate patch method download name value disabled phx-click phx-value-id phx-disable-with)
+
   attr :class, :string
   attr :variant, :string, values: ~w(primary)
   slot :inner_block, required: true
