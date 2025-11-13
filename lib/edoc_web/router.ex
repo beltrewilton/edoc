@@ -21,7 +21,7 @@ defmodule EdocWeb.Router do
   scope "/", EdocWeb do
     pipe_through :api
 
-    post "/", WebhookController, :create
+    post "/:user_id/:company_id", WebhookController, :create
   end
 
   scope "/", EdocWeb do
