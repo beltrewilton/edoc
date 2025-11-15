@@ -3,8 +3,18 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   alias Edoc.Accounts
   alias Edoc.Accounts.Company
+  alias Phoenix.PubSub
   alias Decimal
   alias Jason
+
+  @pubsub_server Edoc.PubSub
+  @topic_prefix "company-transactions"
+
+  def topic(user_id, company_id) when is_binary(user_id) and is_binary(company_id) do
+    Enum.join([@topic_prefix, user_id, company_id], ":")
+  end
+
+  def topic(_, _), do: nil
 
   @impl true
   def mount(%{"id" => company_id}, _session, socket) do
@@ -17,6 +27,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
           |> assign(:company, company)
           |> assign(:page_title, "Transactions · #{company.company_name}")
           |> stream(:transactions, transactions, reset: true)
+          |> maybe_subscribe(scope, company)
 
         {:ok, socket}
 
@@ -27,6 +38,17 @@ defmodule EdocWeb.CompanyTransactionsLive do
          |> push_navigate(to: ~p"/companies")}
     end
   end
+
+  @impl true
+  def handle_info(
+        {:odoo_transaction_inserted, %{company_id: company_id, transaction: transaction}},
+        %{assigns: %{company: %{id: company_id}}} = socket
+      ) do
+    {:noreply, stream_insert(socket, :transactions, transaction, at: 0)}
+  end
+
+  @impl true
+  def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
   def render(assigns) do
@@ -183,9 +205,40 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   defp load_company(_, _), do: {:error, :not_found}
 
+  defp maybe_subscribe(socket, scope, company) do
+    if connected?(socket) do
+      subscribe_to_transactions(socket, scope, company)
+    else
+      socket
+    end
+  end
+
+  defp subscribe_to_transactions(socket, scope, %Company{id: company_id}) do
+    with user_id when not is_nil(user_id) <- scope_user_id(scope),
+         topic when not is_nil(topic) <- topic(user_id, company_id),
+         :ok <- PubSub.subscribe(@pubsub_server, topic) do
+      assign(socket, :transactions_topic, topic)
+    else
+      _ -> socket
+    end
+  end
+
+  defp scope_user_id(%Accounts.Scope{user: %Accounts.User{id: user_id}})
+       when is_binary(user_id) and byte_size(user_id) > 0,
+       do: user_id
+
+  defp scope_user_id(_), do: nil
+
   defp odoo_value(%{odoo_request: request}, key) when is_atom(key) do
-    Map.get(request || %{}, key) ||
-      Map.get(request || %{}, Atom.to_string(key))
+    request = request || %{}
+
+    case key do
+      :amount -> amount_from_payload(request)
+      :tax -> tax_from_payload(request)
+      :e_doc -> derive_edoc(request)
+      :rnc -> Map.get(request, "rnc") || Map.get(request, :rnc)
+      _ -> Map.get(request, key) || Map.get(request, Atom.to_string(key))
+    end
   end
 
   defp odoo_value(_, _), do: nil
@@ -228,5 +281,67 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   defp transaction_payload(%{odoo_request: other}) do
     inspect(other, pretty: true, limit: :infinity)
+  end
+
+  defp amount_from_payload(request) do
+    coerce_decimal(request["amount_total"]) ||
+      fetch_nested_decimal(request, ["tax_totals", "total_amount"])
+  end
+
+  defp tax_from_payload(request) do
+    coerce_decimal(request["amount_tax"]) ||
+      fetch_nested_decimal(request, ["tax_totals", "tax_amount"])
+  end
+
+  defp derive_edoc(request) do
+    cond do
+      valid_edoc?(request["x_studio_e_doc_inv"]) ->
+        request["x_studio_e_doc_inv"]
+
+      valid_edoc?(request["x_studio_e_doc_bill"]) ->
+        request["x_studio_e_doc_bill"]
+
+      request["invoice_items"] ->
+        request["invoice_items"]
+        |> List.wrap()
+        |> Enum.find_value(fn item ->
+          cond do
+            valid_edoc?(item["x_studio_e_doc_inv"]) -> item["x_studio_e_doc_inv"]
+            valid_edoc?(item["x_studio_e_doc_bill"]) -> item["x_studio_e_doc_bill"]
+            true -> nil
+          end
+        end)
+
+      true ->
+        nil
+    end
+  end
+
+  defp valid_edoc?(value) when is_binary(value), do: String.trim(value) != ""
+  defp valid_edoc?(_), do: false
+
+  defp coerce_decimal(%Decimal{} = value), do: value
+  defp coerce_decimal(value) when is_integer(value), do: Decimal.new(value)
+  defp coerce_decimal(value) when is_float(value), do: Decimal.from_float(value)
+
+  defp coerce_decimal(value) when is_binary(value) do
+    case Decimal.parse(value) do
+      {decimal, _rest} -> decimal
+      :error -> nil
+    end
+  end
+
+  defp coerce_decimal(_), do: nil
+
+  defp fetch_nested_decimal(request, path) do
+    value =
+      Enum.reduce(path, request, fn key, acc ->
+        case acc do
+          %{} -> Map.get(acc, key)
+          _ -> nil
+        end
+      end)
+
+    coerce_decimal(value)
   end
 end

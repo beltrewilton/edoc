@@ -324,21 +324,26 @@ defmodule Edoc.OdooAutomationClient do
   @doc """
   Create ir.actions.server with webhook state and return its id.
   """
-  @spec create_action_server(t(), integer(), integer(), String.t()) :: integer()
+  @spec create_action_server(t(), integer(), integer(), String.t(), String.t(), String.t()) :: integer()
   def create_action_server(
         %__MODULE__{} = client,
         uid,
         model_id,
-        action_server_name
+        action_server_name,
+        user_id,
+        company_id
       ) do
     {webhook_field_ids, _names} =
       get_account_move_field_ids_and_names(client, uid, model_id, "account.move")
+
+    url         = System.fetch_env!("WEBHOOK_URL")
+    webhook_url = "#{url}/#{user_id}/#{company_id}"
 
     base_vals = %{
       name: action_server_name,
       state: "webhook",
       model_id: model_id,
-      webhook_url: "https://dgii.synaia.io",
+      webhook_url: webhook_url,
       webhook_field_ids: webhook_field_ids
     }
 
@@ -358,6 +363,8 @@ defmodule Edoc.OdooAutomationClient do
           String.t(),
           String.t(),
           String.t(),
+          String.t(),
+          String.t(),
           String.t()
         ) :: integer()
   def create_state_change_automation(
@@ -366,6 +373,8 @@ defmodule Edoc.OdooAutomationClient do
         automation_name,
         action_server_name,
         target_model,
+        user_id,
+        company_id,
         target_state \\ "draft"
       ) do
     # 1) Get model
@@ -386,7 +395,7 @@ defmodule Edoc.OdooAutomationClient do
     IO.puts("trg_selection_field_id: #{trg_selection_field_id}")
 
     # 4) Create server action
-    action_id = create_action_server(client, uid, model_id, action_server_name)
+    action_id = create_action_server(client, uid, model_id, action_server_name, user_id, company_id)
 
     base_vals = %{
       name: automation_name,
@@ -831,8 +840,8 @@ defmodule Edoc.OdooAutomationClient do
         raise "Invoice (account.move) id #{invoice_id} not found"
 
       [record | _] ->
-        current_name = Map.get(record, "name") || ""
-        current_reference = Map.get(record, "payment_reference") || ""
+        current_name = "" #Map.get(record, "name") || ""
+        current_reference = "" # Map.get(record, "payment_reference") || ""
 
         new_name =
           if current_name != "" do
@@ -854,7 +863,8 @@ defmodule Edoc.OdooAutomationClient do
             uid,
             "account.move",
             "write",
-            [[invoice_id], %{name: new_name, payment_reference: new_reference}]
+            # [[invoice_id], %{name: new_name, payment_reference: new_reference}]
+            [[invoice_id], %{ref: new_reference}]
           )
 
         IO.puts(

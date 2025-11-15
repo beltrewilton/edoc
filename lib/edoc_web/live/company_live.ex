@@ -71,6 +71,7 @@ defmodule EdocWeb.CompanyLive do
   @impl true
   def handle_event("connect", %{"id" => id}, socket) do
     company = Accounts.get_company!(id)
+    user_id = socket.assigns.current_scope.user.id
 
     url = company.odoo_url
     db = company.odoo_db
@@ -147,6 +148,8 @@ defmodule EdocWeb.CompanyLive do
                 "Automation-DGII",
                 "Send Webhook Notification (dgii-gw)",
                 "account.move",
+                user_id,
+                company_id,
                 "posted"
               )
 

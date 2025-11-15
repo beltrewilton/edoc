@@ -6,8 +6,11 @@ defmodule EdocWeb.WebhookController do
   alias Edoc.Repo
   alias Edoc.RequestLogger
   alias Edoc.OdooAutomationClient, as: Odoo
+  alias EdocWeb.CompanyTransactionsLive
+  alias Phoenix.PubSub
 
   @body_opts [length: 10_000_000, read_timeout: 15_000]
+  @pubsub_server Edoc.PubSub
 
   def create(conn, %{"user_id" => user_id, "company_id" => company_id}) do
     with {:ok, payload} <- decode_body(conn),
@@ -15,7 +18,8 @@ defmodule EdocWeb.WebhookController do
          {:ok, tenant} <- tenant_for_user(user),
          {:ok, company} <- fetch_company(company_id, tenant),
          {:ok, enriched_payload, client_info} <- enrich_payload(conn, payload, company),
-         {:ok, _record} <- insert_transaction(company, tenant, enriched_payload) do
+         {:ok, transaction} <- insert_transaction(company, tenant, enriched_payload) do
+      broadcast_transaction_event(user, company, transaction)
       trigger_request_fmp(client_info, payload["_id"], enriched_payload)
 
       conn
@@ -176,4 +180,21 @@ defmodule EdocWeb.WebhookController do
   end
 
   defp request_fmp_api(_, _, _, _), do: :ok
+
+  defp broadcast_transaction_event(
+         %User{id: user_id},
+         %Company{id: company_id},
+         %Transaction{} = transaction
+       )
+       when is_binary(user_id) and byte_size(user_id) > 0 and
+              is_binary(company_id) and byte_size(company_id) > 0 do
+    if topic = CompanyTransactionsLive.topic(user_id, company_id) do
+      event = {:odoo_transaction_inserted, %{user_id: user_id, company_id: company_id, transaction: transaction}}
+      PubSub.broadcast(@pubsub_server, topic, event)
+    end
+
+    :ok
+  end
+
+  defp broadcast_transaction_event(_, _, _), do: :ok
 end
