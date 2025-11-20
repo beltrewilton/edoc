@@ -22,9 +22,9 @@ defmodule Edoc.OdooAutomationClient do
       #                              deleted-child: Send Webhook Notification (dgii-gw)
       # Technical > Database estructure > Fields : delete x_studio_e_doc (Journal Entry)
       # Technical > User interface > Views: delete account_move_form_edoc_field
-      # Technical > Views : search `account.move.form`,
+      # Technical > User interface > Views : search `account.move.form`,
       #         Inherited Views (tab) - delete Odoo Studio: account.move.form customization
-      #         Test: From invoice > go to studio
+      # Test: From invoice > go to studio
 
 
   All calls that hit Odoo (XML-RPC /object) receive `uid` explicitly.

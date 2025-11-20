@@ -1,13 +1,16 @@
 defmodule EdocWeb.WebhookController do
   use EdocWeb, :controller
 
+  alias Edoc.Accounts
   alias Edoc.Accounts.{Company, User}
   alias Edoc.Transaction
   alias Edoc.Repo
   alias Edoc.RequestLogger
   alias Edoc.OdooAutomationClient, as: Odoo
+  alias Edoc.TenantContext
   alias EdocWeb.CompanyTransactionsLive
   alias Phoenix.PubSub
+  require Logger
 
   @body_opts [length: 10_000_000, read_timeout: 15_000]
   @pubsub_server Edoc.PubSub
@@ -16,11 +19,13 @@ defmodule EdocWeb.WebhookController do
     with {:ok, payload} <- decode_body(conn),
          {:ok, user} <- fetch_user(user_id),
          {:ok, tenant} <- tenant_for_user(user),
+         :ok <- ensure_tenant_context(tenant),
          {:ok, company} <- fetch_company(company_id, tenant),
          {:ok, enriched_payload, client_info} <- enrich_payload(conn, payload, company),
-         {:ok, transaction} <- insert_transaction(company, tenant, enriched_payload) do
+         {:ok, e_doc} <- {:ok, generate_edoc(payload)},
+         {:ok, transaction} <- insert_transaction(company, tenant, enriched_payload, e_doc) do
       broadcast_transaction_event(user, company, transaction)
-      trigger_request_fmp(client_info, payload["_id"], enriched_payload)
+      trigger_request_fmp(client_info, payload["_id"], tenant, e_doc)
 
       conn
       |> put_status(:created)
@@ -84,11 +89,12 @@ defmodule EdocWeb.WebhookController do
     end
   end
 
-  defp insert_transaction(%Company{id: company_id}, tenant, payload) do
+  defp insert_transaction(%Company{id: company_id}, tenant, payload, e_doc \\ nil) do
     attrs = %{
       company_id: company_id,
       odoo_request: payload,
-      odoo_request_at: DateTime.utc_now(:second)
+      odoo_request_at: DateTime.utc_now(:second),
+      edoc: e_doc
     }
 
     %Transaction{}
@@ -148,34 +154,22 @@ defmodule EdocWeb.WebhookController do
     Map.merge(base_entry, headers_map)
   end
 
-  defp trigger_request_fmp({_client, _uid}, nil, _payload), do: :ok
+  defp trigger_request_fmp({_client, _uid}, nil, _tenant, _e_doc), do: :ok
+  defp trigger_request_fmp({_client, _uid}, _invoice_id, _tenant, nil), do: :ok
 
-  defp trigger_request_fmp({client, uid}, invoice_id, payload) do
+  defp trigger_request_fmp({client, uid}, invoice_id, tenant, e_doc) do
     Task.start(fn ->
+      TenantContext.put_tenant(tenant)
       Process.sleep(5_000)
-      request_fmp_api(client, uid, invoice_id, payload)
+      request_fmp_api(client, uid, invoice_id, e_doc)
     end)
   end
 
   defp format_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
   defp format_ip(other), do: to_string(:inet.ntoa(other))
 
-  defp request_fmp_api(
-         %Odoo{} = client,
-         uid,
-         invoice_id,
-         %{
-           "x_studio_e_doc_bill" => bill,
-           "x_studio_e_doc_inv" => inv
-         }
-       ) do
-    e_doc =
-      if bill == false do
-        "#{inv}000000067"
-      else
-        "#{bill}00000078"
-      end
-
+  defp request_fmp_api(%Odoo{} = client, uid, invoice_id, e_doc)
+       when is_binary(e_doc) and byte_size(e_doc) > 0 do
     Odoo.append_to_invoice_name(client, uid, invoice_id, e_doc)
   end
 
@@ -197,4 +191,42 @@ defmodule EdocWeb.WebhookController do
   end
 
   defp broadcast_transaction_event(_, _, _), do: :ok
+
+  defp ensure_tenant_context(tenant) do
+    TenantContext.put_tenant(tenant)
+    :ok
+  end
+
+  defp generate_edoc(%{} = payload) do
+    payload
+    |> resolve_edoc_prefix()
+    |> case do
+      nil ->
+        nil
+
+      prefix ->
+        case Accounts.next_tax_sequence(prefix) do
+          {:ok, identifier} ->
+            identifier
+
+          {:error, reason} ->
+            Logger.error("Failed to generate E-DOC for prefix #{prefix}: #{inspect(reason)}")
+            nil
+        end
+    end
+  end
+
+  defp resolve_edoc_prefix(payload) do
+    bill = Map.get(payload, "x_studio_e_doc_bill") || Map.get(payload, :x_studio_e_doc_bill)
+    inv = Map.get(payload, "x_studio_e_doc_inv") || Map.get(payload, :x_studio_e_doc_inv)
+
+    cond do
+      valid_prefix?(bill) -> bill
+      valid_prefix?(inv) -> inv
+      true -> nil
+    end
+  end
+
+  defp valid_prefix?(value) when is_binary(value), do: String.trim(value) != ""
+  defp valid_prefix?(_), do: false
 end

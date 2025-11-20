@@ -152,7 +152,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
               >
                 <div>
                   <p class="text-xs font-semibold text-white">
-                    {odoo_value(transaction, :e_doc) || "—"}
+                    {display_edoc(transaction)}
                   </p>
                   <p class="text-[0.7rem] text-zinc-400">ID: {transaction.id}</p>
                 </div>
@@ -228,6 +228,14 @@ defmodule EdocWeb.CompanyTransactionsLive do
        do: user_id
 
   defp scope_user_id(_), do: nil
+
+  defp display_edoc(%{edoc: edoc} = transaction) when is_binary(edoc) and edoc != "" do
+    edoc
+  end
+
+  defp display_edoc(transaction) do
+    odoo_value(transaction, :e_doc) || "—"
+  end
 
   defp odoo_value(%{odoo_request: request}, key) when is_atom(key) do
     request = request || %{}

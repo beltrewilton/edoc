@@ -6,7 +6,7 @@ defmodule Edoc.Accounts do
   import Ecto.Query, warn: false
   alias Edoc.Repo
 
-  alias Edoc.Accounts.{User, UserToken, UserNotifier}
+  alias Edoc.Accounts.{User, UserToken, UserNotifier, TaxSequence}
   alias Edoc.Accounts.Company
   alias Edoc.Accounts.Scope
   alias Ecto.Changeset
@@ -379,6 +379,95 @@ defmodule Edoc.Accounts do
         {:ok, {user, tokens_to_expire}}
       end
     end)
+  end
+
+  ## Tax sequences
+
+  @tax_identifier_length 13
+
+  @doc """
+  Lists all tax sequences for the current tenant.
+  """
+  def list_tax_sequences do
+    tenant = TenantContext.get_tenant()
+
+    TaxSequence
+    |> order_by(asc: :prefix)
+    |> Repo.all(prefix: tenant)
+  end
+
+  @doc """
+  Fetches a tax sequence by id for the current tenant.
+  """
+  def get_tax_sequence!(id) do
+    tenant = TenantContext.get_tenant()
+    Repo.get!(TaxSequence, id, prefix: tenant)
+  end
+
+  @doc """
+  Returns an editable changeset for the given tax sequence.
+  """
+  def change_tax_sequence(%TaxSequence{} = sequence, attrs \\ %{}) do
+    TaxSequence.changeset(sequence, attrs)
+  end
+
+  @doc """
+  Updates a tax sequence in the current tenant.
+  """
+  def update_tax_sequence(%TaxSequence{} = sequence, attrs) do
+    tenant = TenantContext.get_tenant()
+
+    sequence
+    |> TaxSequence.changeset(attrs)
+    |> Repo.update(prefix: tenant)
+  end
+
+  @doc """
+  Generates the next electronic tax code for the given prefix.
+
+  The function increments the stored suffix atomically per tenant and
+  formats a 13-character string, e.g., `E330000000001`.
+  """
+  def next_tax_sequence(prefix) when is_binary(prefix) and byte_size(prefix) > 0 do
+    tenant = TenantContext.get_tenant()
+
+    Repo.transaction(fn ->
+      query =
+        from ts in TaxSequence,
+          where: ts.prefix == ^prefix,
+          lock: "FOR UPDATE"
+
+      case Repo.one(query, prefix: tenant) do
+        %TaxSequence{} = sequence ->
+          new_suffix = (sequence.suffix || 0) + 1
+
+          case sequence
+               |> TaxSequence.suffix_changeset(new_suffix)
+               |> Repo.update(prefix: tenant) do
+            {:ok, updated_sequence} ->
+              format_tax_identifier(updated_sequence.prefix, new_suffix)
+
+            {:error, changeset} ->
+              Repo.rollback({:changeset_error, changeset})
+          end
+
+        nil ->
+          Repo.rollback({:unknown_prefix, prefix})
+      end
+    end)
+    |> case do
+      {:ok, identifier} -> {:ok, identifier}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  def next_tax_sequence(_), do: {:error, :invalid_prefix}
+
+  defp format_tax_identifier(prefix, suffix) do
+    padding_length = max(@tax_identifier_length - String.length(prefix), 0)
+    numeric_part = Integer.to_string(suffix) |> String.pad_leading(padding_length, "0")
+
+    prefix <> numeric_part
   end
 
   ## Companies (multi-tenant)

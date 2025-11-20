@@ -71,6 +71,6 @@ defmodule EdocWeb.GoogleAuthController do
   end
 
   defp google_redirect_uri do
-    "https://d500aa125a00.ngrok-free.app/auth/google/callback"
+    "https://a0c15d085bf1.ngrok-free.app/auth/google/callback"
   end
 end

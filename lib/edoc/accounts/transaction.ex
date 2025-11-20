@@ -9,6 +9,7 @@ defmodule Edoc.Transaction do
     field :odoo_request, :map
     field :provider_request, :map
     field :provider_response, :map
+    field :edoc, :string
 
     field :odoo_request_at, :utc_datetime
     field :provider_request_at, :utc_datetime
@@ -23,6 +24,7 @@ defmodule Edoc.Transaction do
     :odoo_request,
     :provider_request,
     :provider_response,
+    :edoc,
     :odoo_request_at,
     :provider_request_at,
     :provider_response_at,

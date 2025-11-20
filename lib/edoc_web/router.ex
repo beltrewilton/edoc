@@ -67,6 +67,7 @@ defmodule EdocWeb.Router do
       live "/companies", CompanyLive, :index
       live "/companies/new", CompanyLive, :new
       live "/companies/:id/transactions", CompanyTransactionsLive, :transactions
+      live "/tax-sequences", TaxSequenceLive, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
