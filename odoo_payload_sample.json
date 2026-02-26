@@ -1,0 +1,59 @@
+{
+    "_action": "Send Webhook Notification (dgii-gw)(#630)",
+    "_id": 11284,
+    "_model": "account.move",
+    "amount_paid": 0.0,
+    "amount_residual": 4875.0,
+    "amount_tax": 0.0,
+    "amount_total": 4875.0,
+    "amount_untaxed": 4875.0,
+    "commercial_partner_id": 312,
+    "company_id": 1,
+    "display_name": "INV/2026/02/0005",
+    "id": 11284,
+    "invoice_date": "2026-02-22",
+    "invoice_date_due": "2026-02-22",
+    "invoice_line_ids": [
+        30805
+    ],
+    "invoice_origin": false,
+    "invoice_partner_display_name": "C2S Consulting",
+    "line_ids": [
+        30805,
+        30806
+    ],
+    "name": "INV/2026/02/0005",
+    "partner_id": 312,
+    "payment_reference": "INV/2026/02/0005",
+    "payment_state": "not_paid",
+    "ref": false,
+    "status_in_payment": "not_paid",
+    "tax_totals": {
+        "base_amount": 4875.0,
+        "base_amount_currency": 4875.0,
+        "company_currency_id": 74,
+        "company_currency_pd": 0.01,
+        "currency_id": 74,
+        "currency_pd": 0.01,
+        "display_in_company_currency": false,
+        "has_tax_groups": false,
+        "same_tax_base": true,
+        "subtotals": [
+            {
+                "base_amount": 4875.0,
+                "base_amount_currency": 4875.0,
+                "name": "Untaxed Amount",
+                "tax_amount": 0.0,
+                "tax_amount_currency": 0.0,
+                "tax_groups": []
+            }
+        ],
+        "tax_amount": 0.0,
+        "tax_amount_currency": 0.0,
+        "total_amount": 4875.0,
+        "total_amount_currency": 4875.0
+    },
+    "transaction_ids": [],
+    "x_studio_e_doc_bill": false,
+    "x_studio_e_doc_inv": "E31"
+}

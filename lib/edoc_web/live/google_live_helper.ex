@@ -99,7 +99,7 @@ defmodule EdocWeb.GoogleLiveHelper do
   end
 
   defp google_redirect_uri do
-    "https://a0c15d085bf1.ngrok-free.app/auth/google/callback"
+    "https://12a0-2001-1308-1cfe-6e00-bd31-b5-b1c3-49dc.ngrok-free.app/auth/google/callback"
   end
 
   @impl true

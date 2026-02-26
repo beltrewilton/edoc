@@ -1,0 +1,51 @@
+{
+    "encabezado": {
+        "version": "1.0",
+        "idDoc": {
+            "tipoeCF": 31,
+            "encf": "E310000000001",
+            "fechaVencimientoSecuencia": "31-12-2025",
+            "indicadorMontoGravado": 0,
+            "tipoIngresos": "01",
+            "tipoPago": 1,
+            "tablaFormasPago": []
+        },
+        "emisor": {
+            "rncEmisor": "123456789",
+            "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+            "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+            "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+            "tablaTelefonoEmisor": [],
+            "fechaEmision": "01-04-2020"
+        },
+        "comprador": {
+            "rncComprador": "131880681",
+            "razonSocialComprador": "DOCUMENTOS ELECTRONICOS DE 03"
+        },
+        "totales": {
+            "montoExento": 400000,
+            "impuestosAdicionales": [],
+            "montoTotal": 400000
+        }
+    },
+    "detallesItems": [
+        {
+            "numeroLinea": 1,
+            "tablaCodigosItem": [],
+            "indicadorFacturacion": 4,
+            "nombreItem": "GENERIC ITEM",
+            "indicadorBienoServicio": 1,
+            "cantidadItem": 10000,
+            "unidadMedida": "47",
+            "tablaSubcantidad": [],
+            "precioUnitarioItem": 40,
+            "tablaSubDescuento": [],
+            "tablaSubRecargo": [],
+            "tablaImpuestoAdicional": [],
+            "montoItem": 400000
+        }
+    ],
+    "subtotales": [],
+    "descuentosORecargos": [],
+    "paginacion": []
+}

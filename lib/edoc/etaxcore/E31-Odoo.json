@@ -1,0 +1,98 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#631)",
+  "_id": 11287,
+  "_model": "account.move",
+  "amount_paid": 0.0,
+  "amount_residual": 3009.0,
+  "amount_tax": 459.0,
+  "amount_total": 3009.0,
+  "amount_untaxed": 2550.0,
+  "commercial_partner_id": 316,
+  "company_id": 1,
+  "display_name": "INV/2026/02/0008",
+  "id": 11287,
+  "invoice_date": "2026-02-24",
+  "invoice_date_due": "2026-02-24",
+  "invoice_items": [
+    {
+      "account_id": [
+        159,
+        "41010100 Ventas de Bienes"
+      ],
+      "credit": 2550.0,
+      "debit": 0.0,
+      "discount": 0.0,
+      "id": 30813,
+      "name": "[BOTALMTRU] Botas de Trabajo de AlmacénTrugard",
+      "price_subtotal": 2550.0,
+      "price_unit": 2550.0,
+      "product_id": [
+        145,
+        "[BOTALMTRU] Botas de Trabajo de AlmacénTrugard"
+      ],
+      "quantity": 1.0,
+      "tax_ids": [
+        3
+      ]
+    }
+  ],
+  "invoice_line_ids": [
+    30813
+  ],
+  "invoice_origin": false,
+  "invoice_partner_display_name": "Santo Domingo Motors Company",
+  "line_ids": [
+    30813,
+    30814,
+    30815
+  ],
+  "name": "INV/2026/02/0008",
+  "partner_id": 316, #TODO: buscar detalle del partner para request
+  "payment_reference": "INV/2026/02/0008",
+  "payment_state": "not_paid",
+  "ref": false,
+  "status_in_payment": "not_paid",
+  "tax_totals": {
+    "base_amount": 2550.0,
+    "base_amount_currency": 2550.0,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 2550.0,
+        "base_amount_currency": 2550.0,
+        "name": "Untaxed Amount",
+        "tax_amount": 459.0,
+        "tax_amount_currency": 459.0,
+        "tax_groups": [
+          {
+            "base_amount": 2550.0,
+            "base_amount_currency": 2550.0,
+            "display_base_amount": 2550.0,
+            "display_base_amount_currency": 2550.0,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              3
+            ],
+            "tax_amount": 459.0,
+            "tax_amount_currency": 459.0
+          }
+        ]
+      }
+    ],
+    "tax_amount": 459.0,
+    "tax_amount_currency": 459.0,
+    "total_amount": 3009.0,
+    "total_amount_currency": 3009.0
+  },
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": false,
+  "x_studio_e_doc_inv": "E31"
+}

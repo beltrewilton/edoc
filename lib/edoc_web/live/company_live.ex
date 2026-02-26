@@ -130,6 +130,17 @@ defmodule EdocWeb.CompanyLive do
                 "Identificadorde Gastos del tipo de e-DOC requerido para factura electrónica."
               )
 
+
+            Odoo.create_edoc_field(
+                client,
+                uid,
+                "x_studio_e_doc_bill_seq",
+                "Secuencia de e-DOC",
+                "e-DOC secuencia factura electrónica.",
+                "account.move",
+                "text"
+              )
+
             send(parent, {:odoo_automation_progress, company_id, 3})
 
             # Step 4: Create bill selection values

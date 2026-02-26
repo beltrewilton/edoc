@@ -1,0 +1,85 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 31, 
+      "encf": "E310000000001",
+      "fechaVencimientoSecuencia": "31-12-2025",
+      "indicadorMontoGravado": 1, #Fixed to 1
+      "tipoIngresos": "02", #Fixed to "02"
+      "tipoPago": 1, #Fixed to 1
+      "tablaFormasPago": [
+        {
+          "formaPago": 1, #Fixed to 1
+          "montoPago": 7080 #amount_total
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "010101", #Fixed 
+      "provincia": "010000", #Fixed 
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "codigoVendedor": "AA0000000100000000010000000002000000000300000000050000000006",
+      "numeroFacturaInterna": "123456789016", #payment_reference
+      "numeroPedidoInterno": "123456789016", 
+      "zonaVenta": "NORT",
+      "fechaEmision": "01-04-2020"
+    },
+    "comprador": {
+      "rncComprador": "131880681",
+      "razonSocialComprador": "DOCUMENTOS ELECTRONICOS DE 03",
+      "contactoComprador": "MARCOS LATIPLOL",
+      "correoComprador": "MARCOSLATIPLOL@KKKK.COM",
+      "direccionComprador": "CALLE JACINTO DE LA CONCHA FELIZ ESQUINA 27 DE FEBRERO,FRENTE A DOMINO",
+      "municipioComprador": "010100",
+      "provinciaComprador": "010000",
+      "fechaEntrega": "10-10-2020",
+      "fechaOrdenCompra": "10-11-2018",
+      "numeroOrdenCompra": "4500352238",
+      "codigoInternoComprador": "10633440"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "8019289",
+      "numeroReferencia": 1447
+    },
+    "totales": {
+      "montoGravadoTotal": 6000, #base_amount
+      "montoGravadoI1": 6000, #base_amount
+      "itbis1": 18,
+      "totalITBIS": 1080, #tax_amount
+      "totalITBIS1": 1080, #tax_amount
+      "impuestosAdicionales": [],
+      "montoTotal": 7080 #amount_total
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,
+      "nombreItem": "ASW DTU",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 15, #quantity
+      "unidadMedida": "31",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 400, #price_unit
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 6000 #price_subtotal
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:17"
+}

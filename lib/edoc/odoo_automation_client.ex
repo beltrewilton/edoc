@@ -8,7 +8,7 @@ defmodule Edoc.OdooAutomationClient do
       uid = Odoo.authenticate!(client)
       field_id = Odoo.create_edoc_field(client, uid)
       Odoo.create_edoc_selection_values(client, uid, field_id)
-      field_id = Odoo.create_edoc_field(client, uid, "x_studio_e_doc_bill", "Tipo de e-DOC Gastos", "Identificadorde Gastos del tipo de e-DOC requerido para factura electrónica.")
+      field_id = Odoo.create_edoc_field(client, uid, "x_studio_e_doc_bill_seq", "Tipo de e-DOC Gastos", "Identificadorde Gastos del tipo de e-DOC requerido para factura electrónica.")
       Odoo.create_edoc_selection_values(client, uid, field_id, false)
       Odoo.create_edoc_view_inheritance(client, uid)
       Odoo.create_state_change_automation(client, uid, "Automation-DGII", "Send Webhook Notification (dgii-gw)", "account.move", "posted")
@@ -324,7 +324,8 @@ defmodule Edoc.OdooAutomationClient do
   @doc """
   Create ir.actions.server with webhook state and return its id.
   """
-  @spec create_action_server(t(), integer(), integer(), String.t(), String.t(), String.t()) :: integer()
+  @spec create_action_server(t(), integer(), integer(), String.t(), String.t(), String.t()) ::
+          integer()
   def create_action_server(
         %__MODULE__{} = client,
         uid,
@@ -336,7 +337,7 @@ defmodule Edoc.OdooAutomationClient do
     {webhook_field_ids, _names} =
       get_account_move_field_ids_and_names(client, uid, model_id, "account.move")
 
-    url         = System.fetch_env!("WEBHOOK_URL")
+    url = System.fetch_env!("WEBHOOK_URL")
     webhook_url = "#{url}/#{user_id}/#{company_id}"
 
     base_vals = %{
@@ -395,7 +396,8 @@ defmodule Edoc.OdooAutomationClient do
     IO.puts("trg_selection_field_id: #{trg_selection_field_id}")
 
     # 4) Create server action
-    action_id = create_action_server(client, uid, model_id, action_server_name, user_id, company_id)
+    action_id =
+      create_action_server(client, uid, model_id, action_server_name, user_id, company_id)
 
     base_vals = %{
       name: automation_name,
@@ -511,7 +513,8 @@ defmodule Edoc.OdooAutomationClient do
         field_name \\ "x_studio_e_doc_inv",
         field_description \\ "Tipo de e-DOC",
         help \\ "Identificador del tipo de e-DOC requerido para factura electrónica.",
-        model_name \\ "account.move"
+        model_name \\ "account.move",
+        ttype \\ "selection"
       ) do
     model = get_model(client, uid, model_name)
     model_id = model["id"]
@@ -520,8 +523,9 @@ defmodule Edoc.OdooAutomationClient do
       name: field_name,
       field_description: field_description,
       model_id: model_id,
-      ttype: "selection",
-      required: true,
+      ttype: ttype,
+      # TODO: just check
+      required: false,
       store: true,
       help: help,
       state: "manual"
@@ -634,10 +638,17 @@ defmodule Edoc.OdooAutomationClient do
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='other_info']/group[1]/group[@name='accounting_info_group']/field[@name='company_id']" position="after">
           <field
                 name="x_studio_e_doc_bill"
-                help="Identificadorde Gastos del tipo de e-DOC requerido para factura electrónica."
+                help="Identificador de Gastos del tipo de e-DOC requerido para factura electrónica."
                 invisible="move_type not in ('in_invoice', 'in_refund', 'in_receipt')"
                 readonly="state in ['posted', 'cancel']"
                 style="font-weight:bold;"
+            />
+
+          <field
+              name="x_studio_e_doc_bill_seq"
+              help="e-DOC secuencia factura electrónica."
+              invisible="move_type not in ('in_invoice', 'in_refund', 'in_receipt')"
+              readonly="state in ['posted', 'cancel']"
             />
         </xpath>
     </data>
@@ -811,67 +822,33 @@ defmodule Edoc.OdooAutomationClient do
   @doc """
   Append a string to the invoice 'name' and 'payment_reference' fields.
   """
-  @spec append_to_invoice_name(
+  @spec add_invoice_sequence(
           t(),
           integer(),
           integer(),
           String.t(),
           String.t()
         ) :: String.t()
-  def append_to_invoice_name(
+  def add_invoice_sequence(
         %__MODULE__{} = client,
         uid,
         invoice_id,
-        extra_text,
-        sep \\ " "
+        e_doc,
+        doc_type
       ) do
-    records =
-      execute_kw!(
-        client,
-        uid,
-        "account.move",
-        "read",
-        [[invoice_id]],
-        %{fields: ["name", "payment_reference"]}
-      )
+    attr =
+      case doc_type do
+        "BILL" -> [[invoice_id], %{x_studio_e_doc_bill_seq: e_doc}]
+        "INV" -> [[invoice_id], %{ref: e_doc}]
+        nil -> nil
+      end
 
-    case records do
-      [] ->
-        raise "Invoice (account.move) id #{invoice_id} not found"
-
-      [record | _] ->
-        current_name = "" #Map.get(record, "name") || ""
-        current_reference = "" # Map.get(record, "payment_reference") || ""
-
-        new_name =
-          if current_name != "" do
-            current_name <> sep <> extra_text
-          else
-            extra_text
-          end
-
-        new_reference =
-          if current_reference != "" do
-            current_reference <> sep <> extra_text
-          else
-            extra_text
-          end
-
-        _ =
-          execute_kw!(
-            client,
-            uid,
-            "account.move",
-            "write",
-            # [[invoice_id], %{name: new_name, payment_reference: new_reference}]
-            [[invoice_id], %{ref: new_reference}]
-          )
-
-        IO.puts(
-          "Updated invoice #{invoice_id} name: #{inspect(current_name)} -> #{inspect(new_name)}"
-        )
-
-        new_name
-    end
+    execute_kw!(
+      client,
+      uid,
+      "account.move",
+      "write",
+      attr
+    )
   end
 end
