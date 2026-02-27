@@ -1,0 +1,120 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 44,
+      "encf": "E440000000002",
+      "fechaVencimientoSecuencia": "31-12-2025",
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": 248292
+        }
+      ],
+      "tipoCuentaPago": "CT",
+      "numeroCuentaPago": "0301678890090",
+      "bancoPago": "BANCO XDRFT"
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "010101",
+      "provincia": "010000",
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "codigoVendedor": "AA0000000100000000010000000002000000000300000000050000000006",
+      "numeroFacturaInterna": "123456789016",
+      "numeroPedidoInterno": "123456789016",
+      "zonaVenta": "NORT",
+      "fechaEmision": "01-04-2020"
+    },
+    "comprador": {
+      "rncComprador": "131880681",
+      "razonSocialComprador": "DOCUMENTOS ELECTRONICOS DE 03",
+      "contactoComprador": "MARCOS LATIPLOL",
+      "correoComprador": "MARCOSLATIPLOL@KKKK.COM",
+      "direccionComprador": "CALLE JACINTO DE LA CONCHA FELIZ ESQUINA 27 DE FEBRERO,FRENTE A DOMINO",
+      "municipioComprador": "010100",
+      "provinciaComprador": "010000",
+      "fechaEntrega": "10-10-2020",
+      "fechaOrdenCompra": "10-11-2018",
+      "numeroOrdenCompra": "4500352238",
+      "codigoInternoComprador": "10633440"
+    },
+    "totales": {
+      "montoExento": 248292,
+      "impuestosAdicionales": [],
+      "montoTotal": 248292,
+      "valorPagar": 248292
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "COMBUSTIBLE AWSO",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 22,
+      "unidadMedida": "15",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 220,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 4840
+    },
+    {
+      "numeroLinea": 2,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "COMBUSTIBLE AWSO",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 22,
+      "unidadMedida": "15",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 220,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 4840
+    },
+    {
+      "numeroLinea": 3,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "COMBUSTIBLE AWSO",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 22,
+      "unidadMedida": "15",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 220,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 4840
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [
+    {
+      "numeroLinea": 1,
+      "tipoAjuste": "D",
+      "descripcionDescuentooRecargo": "DESCUENTO ADMINISTRATIVO",
+      "tipoValor": "%",
+      "valorDescuentooRecargo": 10,
+      "montoDescuentooRecargo": 27588,
+      "indicadorFacturacionDescuentooRecargo": 4
+    }
+  ],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:30"
+}

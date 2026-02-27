@@ -7,35 +7,35 @@ defmodule EdocWeb.UserLive.Registration do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
-        <div class="text-center">
-          <.header>
-            Register for an account
-            <:subtitle>
-              Already registered?
-              <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
-                Log in
-              </.link>
-              to your account now.
-            </:subtitle>
-          </.header>
-        </div>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-2xl space-y-5">
+        <.header>
+          Create your account
+          <:subtitle>
+            Already registered?
+            <.link navigate={~p"/users/log-in"} class="font-semibold text-slate-900 hover:text-slate-600">
+              Log in
+            </.link>
+          </:subtitle>
+        </.header>
 
-        <.form for={@form} id="registration_form" phx-submit="save" phx-change="validate">
-          <.input
-            field={@form[:email]}
-            type="email"
-            label="Email"
-            autocomplete="username"
-            required
-            phx-mounted={JS.focus()}
-          />
+        <.surface class="border-indigo-100/70 dark:border-indigo-500/20">
+          <.form for={@form} id="registration_form" phx-submit="save" phx-change="validate" class="space-y-4">
+            <.input
+              field={@form[:email]}
+              type="email"
+              label="Email"
+              autocomplete="username"
+              required
+              phx-mounted={JS.focus()}
+              placeholder="you@company.com"
+            />
 
-          <.button phx-disable-with="Creating account..." class="btn btn-primary w-full">
-            Create an account
-          </.button>
-        </.form>
+            <.button type="submit" phx-disable-with="Creating account..." class="w-full">
+              Create an account
+            </.button>
+          </.form>
+        </.surface>
       </div>
     </Layouts.app>
     """
@@ -50,7 +50,10 @@ defmodule EdocWeb.UserLive.Registration do
   def mount(_params, _session, socket) do
     changeset = Accounts.change_user_email(%User{}, %{}, validate_unique: false)
 
-    {:ok, assign_form(socket, changeset), temporary_assigns: [form: nil]}
+    {:ok,
+     socket
+     |> assign(:page_title, "Register")
+     |> assign_form(changeset), temporary_assigns: [form: nil]}
   end
 
   @impl true

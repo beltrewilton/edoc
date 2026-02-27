@@ -1,141 +1,45 @@
 defmodule EdocWeb.UserLive.Login do
   use EdocWeb, :live_view
 
-  alias Edoc.Accounts
-
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm space-y-4">
-        <div class="text-center">
-          <.header>
-            <p>Log in</p>
-            <:subtitle>
-              <%= if @current_scope do %>
-                You need to reauthenticate to perform sensitive actions on your account.
-              <% else %>
-                Don't have an account? <.link
-                  navigate={~p"/users/register"}
-                  class="font-semibold text-brand hover:underline"
-                  phx-no-format
-                >Sign up</.link> for an account now.
-              <% end %>
-            </:subtitle>
-          </.header>
-        </div>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-xl space-y-5">
+        <.header>
+          Log in
+          <:subtitle>Sign in using your Google account.</:subtitle>
+        </.header>
 
-        <div>
+        <.surface class="border-indigo-100/70 dark:border-indigo-500/20">
           <a
             href={~p"/google_auth_url"}
-            class="btn btn-primary w-full flex items-center justify-center gap-2 transition-transform hover:scale-[1.01]"
+            class={[
+              ui(:btn_primary),
+              "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition shadow-[0_18px_36px_-24px_rgba(79,70,229,0.95)]"
+            ]}
           >
-            <.icon name="hero-arrow-right-on-rectangle" class="w-5 h-5" />
-            <span>Continue with Google</span>
+            <.icon name="hero-arrow-right-on-rectangle" class="size-5" />
+            Continue with Google
           </a>
-        </div>
-
-        <div :if={local_mail_adapter?()} class="alert alert-info">
-          <.icon name="hero-information-circle" class="size-6 shrink-0" />
-          <div>
-            <p>You are running the local mail adapter.</p>
-            <p>
-              To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
-            </p>
-          </div>
-        </div>
-
-        <.form
-          :let={f}
-          for={@form}
-          id="login_form_magic"
-          action={~p"/users/log-in"}
-          phx-submit="submit_magic"
-        >
-          <.input
-            readonly={!!@current_scope}
-            field={f[:email]}
-            type="email"
-            label="Email"
-            autocomplete="username"
-            required
-            phx-mounted={JS.focus()}
-          />
-          <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
-          </.button>
-        </.form>
-
-        <div class="divider">or</div>
-
-        <.form
-          :let={f}
-          for={@form}
-          id="login_form_password"
-          action={~p"/users/log-in"}
-          phx-submit="submit_password"
-          phx-trigger-action={@trigger_submit}
-        >
-          <.input
-            readonly={!!@current_scope}
-            field={f[:email]}
-            type="email"
-            label="Email"
-            autocomplete="username"
-            required
-          />
-          <.input
-            field={@form[:password]}
-            type="password"
-            label="Password"
-            autocomplete="current-password"
-          />
-          <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-            Log in and stay logged in <span aria-hidden="true">→</span>
-          </.button>
-          <.button class="btn btn-primary btn-soft w-full mt-2">
-            Log in only this time
-          </.button>
-        </.form>
+        </.surface>
       </div>
     </Layouts.app>
     """
   end
 
   @impl true
-  def mount(_params, _session, socket) do
-    email =
-      Phoenix.Flash.get(socket.assigns.flash, :email) ||
-        get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:email)])
+  def mount(params, _session, socket) do
+    socket =
+      if params["access"] == "required" and is_nil(user_from_scope(socket.assigns.current_scope)) do
+        put_flash(socket, :error, "Please sign in to access this section.")
+      else
+        socket
+      end
 
-    form = to_form(%{"email" => email}, as: "user")
-
-    {:ok, assign(socket, form: form, trigger_submit: false)}
+    {:ok, assign(socket, page_title: "Log in")}
   end
 
-  @impl true
-  def handle_event("submit_password", _params, socket) do
-    {:noreply, assign(socket, :trigger_submit, true)}
-  end
-
-  def handle_event("submit_magic", %{"user" => %{"email" => email}}, socket) do
-    if user = Accounts.get_user_by_email(email) do
-      Accounts.deliver_login_instructions(
-        user,
-        &url(~p"/users/log-in/#{&1}")
-      )
-    end
-
-    info =
-      "If your email is in our system, you will receive instructions for logging in shortly."
-
-    {:noreply,
-     socket
-     |> put_flash(:info, info)
-     |> push_navigate(to: ~p"/users/log-in")}
-  end
-
-  defp local_mail_adapter? do
-    Application.get_env(:edoc, Edoc.Mailer)[:adapter] == Swoosh.Adapters.Local
-  end
+  defp user_from_scope(%{user: user}) when not is_nil(user), do: user
+  defp user_from_scope(_), do: nil
 end

@@ -6,67 +6,76 @@ defmodule EdocWeb.UserLive.Confirmation do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm">
-        <div class="text-center">
-          <.header>Welcome {@user.email}</.header>
-        </div>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-2xl space-y-5">
+        <.header>
+          Welcome {@user.email}
+          <:subtitle>
+            Complete confirmation to continue.
+          </:subtitle>
+        </.header>
 
-        <.form
-          :if={!@user.confirmed_at}
-          for={@form}
-          id="confirmation_form"
-          phx-mounted={JS.focus_first()}
-          phx-submit="submit"
-          action={~p"/users/log-in?_action=confirmed"}
-          phx-trigger-action={@trigger_submit}
-        >
-          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
-          <.button
-            name={@form[:remember_me].name}
-            value="true"
-            phx-disable-with="Confirming..."
-            class="btn btn-primary w-full"
+        <.surface class="space-y-4 border-indigo-100/70 dark:border-indigo-500/20">
+          <.form
+            :if={!@user.confirmed_at}
+            for={@form}
+            id="confirmation_form"
+            phx-mounted={JS.focus_first()}
+            phx-submit="submit"
+            action={~p"/users/log-in?_action=confirmed"}
+            phx-trigger-action={@trigger_submit}
+            class="space-y-3"
           >
-            Confirm and stay logged in
-          </.button>
-          <.button phx-disable-with="Confirming..." class="btn btn-primary btn-soft w-full mt-2">
-            Confirm and log in only this time
-          </.button>
-        </.form>
-
-        <.form
-          :if={@user.confirmed_at}
-          for={@form}
-          id="login_form"
-          phx-submit="submit"
-          phx-mounted={JS.focus_first()}
-          action={~p"/users/log-in"}
-          phx-trigger-action={@trigger_submit}
-        >
-          <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
-          <%= if @current_scope do %>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary w-full">
-              Log in
-            </.button>
-          <% else %>
+            <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
             <.button
+              type="submit"
               name={@form[:remember_me].name}
               value="true"
-              phx-disable-with="Logging in..."
-              class="btn btn-primary w-full"
+              phx-disable-with="Confirming..."
+              class="w-full"
             >
-              Keep me logged in on this device
+              Confirm and stay logged in
             </.button>
-            <.button phx-disable-with="Logging in..." class="btn btn-primary btn-soft w-full mt-2">
-              Log me in only this time
+            <.button type="submit" variant="secondary" phx-disable-with="Confirming..." class="w-full">
+              Confirm and log in only this time
             </.button>
-          <% end %>
-        </.form>
+          </.form>
 
-        <p :if={!@user.confirmed_at} class="alert alert-outline mt-8">
-          Tip: If you prefer passwords, you can enable them in the user settings.
-        </p>
+          <.form
+            :if={@user.confirmed_at}
+            for={@form}
+            id="login_form"
+            phx-submit="submit"
+            phx-mounted={JS.focus_first()}
+            action={~p"/users/log-in"}
+            phx-trigger-action={@trigger_submit}
+            class="space-y-3"
+          >
+            <input type="hidden" name={@form[:token].name} value={@form[:token].value} />
+            <%= if @current_scope do %>
+              <.button type="submit" phx-disable-with="Logging in..." class="w-full">
+                Log in
+              </.button>
+            <% else %>
+              <.button
+                type="submit"
+                name={@form[:remember_me].name}
+                value="true"
+                phx-disable-with="Logging in..."
+                class="w-full"
+              >
+                Keep me logged in on this device
+              </.button>
+              <.button type="submit" variant="secondary" phx-disable-with="Logging in..." class="w-full">
+                Log me in only this time
+              </.button>
+            <% end %>
+          </.form>
+
+          <p :if={!@user.confirmed_at} class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/45 dark:bg-amber-500/15 dark:text-amber-300">
+            Tip: If you prefer passwords, you can enable them in user settings after sign-in.
+          </p>
+        </.surface>
       </div>
     </Layouts.app>
     """
@@ -77,7 +86,7 @@ defmodule EdocWeb.UserLive.Confirmation do
     if user = Accounts.get_user_by_magic_link_token(token) do
       form = to_form(%{"token" => token}, as: "user")
 
-      {:ok, assign(socket, user: user, form: form, trigger_submit: false),
+      {:ok, assign(socket, user: user, form: form, trigger_submit: false, page_title: "Log in"),
        temporary_assigns: [form: nil]}
     else
       {:ok,

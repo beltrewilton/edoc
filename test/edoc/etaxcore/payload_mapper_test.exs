@@ -50,7 +50,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       odoo_url: "https://odoo.example.com"
     }
 
-    mapped = PayloadMapper.map_invoice(payload, company, e_doc: "E310000000001", doc_type: "INV")
+    mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000000001")
 
     assert Enum.sort(Map.keys(mapped)) == [
              "descuentosORecargos",
@@ -67,7 +67,10 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["indicadorMontoGravado"] == 1
     assert mapped["encabezado"]["idDoc"]["tipoIngresos"] == "02"
     assert mapped["encabezado"]["idDoc"]["tipoPago"] == 1
-    assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [%{"formaPago" => 1, "montoPago" => 3009.0}]
+
+    assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
+             %{"formaPago" => 1, "montoPago" => 3009.0}
+           ]
 
     assert mapped["encabezado"]["emisor"]["rncEmisor"] == "123456789"
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "EDOC SRL"
@@ -106,5 +109,648 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert item["tablaSubDescuento"] == []
     assert item["tablaSubRecargo"] == []
     assert item["tablaImpuestoAdicional"] == []
+  end
+
+  test "maps E32 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 22_287,
+      "amount_tax" => 0.0,
+      "amount_total" => 3000.0,
+      "amount_untaxed" => 3000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "invoice_origin" => false,
+      "invoice_partner_display_name" => "Consumidor Final",
+      "name" => "INV/2026/02/0099",
+      "partner_id" => 316,
+      "payment_reference" => "INV/2026/02/0099",
+      "x_studio_e_doc_inv" => "E32",
+      "invoice_items" => [
+        %{
+          "name" => "[ITEM001] Articulo Exento",
+          "price_subtotal" => 3000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 3.0,
+          "tax_ids" => []
+        }
+      ]
+    }
+
+    company = %Company{
+      company_name: "EDOC SRL",
+      rnc: "123456789"
+    }
+
+    mapped = PayloadMapper.map_e32(payload, company, e_doc: "E320000000001")
+
+    assert Enum.sort(Map.keys(mapped)) == [
+             "descuentosORecargos",
+             "detallesItems",
+             "encabezado",
+             "fechaHoraFirma",
+             "paginacion",
+             "subtotales"
+           ]
+
+    assert mapped["encabezado"]["version"] == "1.0"
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 32,
+             "encf" => "E320000000001",
+             "tipoIngresos" => "01",
+             "tipoPago" => 1,
+             "tablaFormasPago" => []
+           }
+
+    assert mapped["encabezado"]["emisor"]["municipio"] == "320301"
+    assert mapped["encabezado"]["emisor"]["provincia"] == "320000"
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => 3000.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 3000.0
+           }
+
+    assert [
+             %{
+               "numeroLinea" => 1,
+               "indicadorFacturacion" => 4,
+               "nombreItem" => "Articulo Exento",
+               "unidadMedida" => "47",
+               "cantidadItem" => 3.0,
+               "precioUnitarioItem" => 1000.0,
+               "montoItem" => 3000.0
+             } = item
+           ] = mapped["detallesItems"]
+
+    assert item["tablaCodigosItem"] == []
+    assert item["tablaSubcantidad"] == []
+    assert item["tablaSubDescuento"] == []
+    assert item["tablaSubRecargo"] == []
+    assert item["tablaImpuestoAdicional"] == []
+  end
+
+  test "maps E33 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 32_287,
+      "amount_tax" => 0.0,
+      "amount_total" => 4000.0,
+      "amount_untaxed" => 4000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-15",
+      "invoice_origin" => false,
+      "invoice_partner_display_name" => "Consumidor Final",
+      "name" => "INV/2026/02/0101",
+      "partner_id" => 316,
+      "payment_reference" => "INV/2026/02/0101",
+      "x_studio_e_doc_inv" => "E33",
+      "ncf_modificado" => "E320000000002",
+      "fecha_ncf_modificado" => "2026-02-20",
+      "codigo_modificacion" => 3,
+      "invoice_items" => [
+        %{
+          "name" => "[ITEM001] Articulo Exento",
+          "price_subtotal" => 4000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 4.0,
+          "tax_ids" => []
+        }
+      ]
+    }
+
+    company = %Company{
+      company_name: "EDOC SRL",
+      rnc: "123456789"
+    }
+
+    mapped = PayloadMapper.map_e33(payload, company, e_doc: "E330000000001")
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 33,
+             "encf" => "E330000000001",
+             "fechaVencimientoSecuencia" => "15-03-2026",
+             "tipoIngresos" => "01",
+             "tipoPago" => 1,
+             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 4000.0}]
+           }
+
+    assert mapped["encabezado"]["emisor"]["municipio"] == "010100"
+    assert mapped["encabezado"]["emisor"]["provincia"] == "010000"
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => 4000.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 4000.0
+           }
+
+    assert mapped["informacionReferencia"] == %{
+             "ncfModificado" => "E320000000002",
+             "fechaNCFModificado" => "20-02-2026",
+             "codigoModificacion" => 3
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 4,
+               "unidadMedida" => "47",
+               "cantidadItem" => 4.0,
+               "precioUnitarioItem" => 1000.0,
+               "montoItem" => 4000.0
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E34 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 34_287,
+      "amount_tax" => 180.0,
+      "amount_total" => 1180.0,
+      "amount_untaxed" => 1000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "invoice_origin" => false,
+      "invoice_partner_display_name" => "Cliente Fiscal",
+      "name" => "RFD/2026/02/0001",
+      "partner_id" => 999,
+      "payment_reference" => "RFD/2026/02/0001",
+      "x_studio_e_doc_inv" => "E34",
+      "ncf_modificado" => "E310000000001",
+      "fecha_ncf_modificado" => "2026-02-20",
+      "codigo_modificacion" => 2,
+      "razon_modificacion" => "Error en datos",
+      "tax_totals" => %{
+        "base_amount" => 1000.0,
+        "tax_amount" => 180.0,
+        "total_amount" => 1180.0,
+        "subtotals" => [
+          %{
+            "tax_groups" => [
+              %{"base_amount" => 1000.0, "tax_amount" => 180.0}
+            ]
+          }
+        ]
+      },
+      "invoice_items" => [
+        %{
+          "name" => "[ITEM002] Articulo Gravado",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{
+      company_name: "EDOC SRL",
+      rnc: "123456789"
+    }
+
+    mapped = PayloadMapper.map_e34(payload, company, e_doc: "E340000000001")
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 34,
+             "encf" => "E340000000001",
+             "indicadorNotaCredito" => "0",
+             "indicadorMontoGravado" => 0,
+             "tipoIngresos" => "01",
+             "tipoPago" => 1,
+             "tablaFormasPago" => []
+           }
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoGravadoTotal" => 1000.0,
+             "montoGravadoI1" => 1000.0,
+             "itbis1" => 18,
+             "totalITBIS" => 180.0,
+             "totalITBIS1" => 180.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 1180.0
+           }
+
+    assert mapped["informacionReferencia"] == %{
+             "ncfModificado" => "E310000000001",
+             "fechaNCFModificado" => "20-02-2026",
+             "codigoModificacion" => 2,
+             "razonModificacion" => "Error en datos"
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 1,
+               "unidadMedida" => "31",
+               "cantidadItem" => 1.0,
+               "precioUnitarioItem" => 1000.0,
+               "montoItem" => 1000.0
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E41 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 41_287,
+      "amount_tax" => 1800.0,
+      "amount_total" => 11800.0,
+      "amount_untaxed" => 10000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "invoice_partner_display_name" => "Proveedor Local",
+      "rnc_comprador" => "131313131",
+      "partner_id" => 999,
+      "payment_reference" => "BILL/2026/0001",
+      "total_isr_retencion" => 1000.0,
+      "invoice_items" => [
+        %{
+          "name" => "[SERV001] Servicio de publicidad",
+          "description" => "Servicio mensual de publicidad",
+          "price_subtotal" => 10000.0,
+          "price_unit" => 10000.0,
+          "quantity" => 1.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    mapped = PayloadMapper.map_e41(payload, company, e_doc: "E410000000001")
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 41,
+             "encf" => "E410000000001",
+             "fechaVencimientoSecuencia" => "10-03-2026",
+             "indicadorMontoGravado" => 0,
+             "tipoPago" => 1,
+             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 11800.0}]
+           }
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoGravadoTotal" => 10000.0,
+             "montoGravadoI1" => 10000.0,
+             "itbis1" => 18,
+             "totalITBIS" => 1800.0,
+             "totalITBIS1" => 1800.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 11800.0,
+             "valorPagar" => 11800.0,
+             "totalITBISRetenido" => 1800.0,
+             "totalISRRetencion" => 1000.0
+           }
+
+    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "131313131"
+    assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == "123456789"
+
+    assert [
+             %{
+               "indicadorFacturacion" => 1,
+               "indicadorBienoServicio" => 2,
+               "unidadMedida" => "43",
+               "montoItem" => 10000.0,
+               "retencion" => %{
+                 "indicadorAgenteRetencionoPercepcion" => 1,
+                 "montoITBISRetenido" => 1800.0,
+                 "montoISRRetenido" => 1000.0
+               }
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E43 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 43_287,
+      "amount_total" => 700.0,
+      "amount_untaxed" => 700.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "invoice_partner_display_name" => "Proveedor Gastos Menores",
+      "rnc_comprador" => "101010101",
+      "payment_reference" => "BILL/2026/0002",
+      "invoice_items" => [
+        %{
+          "name" => "Peajes viaje semana I",
+          "price_subtotal" => 700.0,
+          "price_unit" => 100.0,
+          "quantity" => 7.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e43(payload, company, e_doc: "E430000000001")
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 43,
+             "encf" => "E430000000001",
+             "fechaVencimientoSecuencia" => "10-03-2026",
+             "tablaFormasPago" => []
+           }
+
+    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Gastos Menores"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "101010101"
+    assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == "123456789"
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => 700.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 700.0
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 4,
+               "indicadorBienoServicio" => 2,
+               "unidadMedida" => "43",
+               "cantidadItem" => 7.0,
+               "montoItem" => 700.0
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E44 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 44_287,
+      "amount_total" => 248_292.0,
+      "amount_untaxed" => 248_292.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "payment_reference" => "INV/2026/0044",
+      "tipo_cuenta_pago" => "CT",
+      "numero_cuenta_pago" => "0301678890090",
+      "banco_pago" => "BANCO XDRFT",
+      "descuentos_o_recargos" => [
+        %{
+          "numero_linea" => 1,
+          "tipo_ajuste" => "D",
+          "descripcion_descuentoo_recargo" => "DESCUENTO ADMINISTRATIVO",
+          "tipo_valor" => "%",
+          "valor_descuentoo_recargo" => 10.0,
+          "monto_descuentoo_recargo" => 27_588.0,
+          "indicador_facturacion_descuentoo_recargo" => 4
+        }
+      ],
+      "invoice_items" => [
+        %{
+          "name" => "Combustible AWSO",
+          "price_subtotal" => 4840.0,
+          "price_unit" => 220.0,
+          "quantity" => 22.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e44(payload, company, e_doc: "E440000000002")
+
+    assert mapped["encabezado"]["idDoc"]["tipoeCF"] == 44
+
+    assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
+             %{"formaPago" => 2, "montoPago" => 248_292.0}
+           ]
+
+    assert mapped["encabezado"]["idDoc"]["tipoCuentaPago"] == "CT"
+    assert mapped["encabezado"]["idDoc"]["numeroCuentaPago"] == "0301678890090"
+    assert mapped["encabezado"]["idDoc"]["bancoPago"] == "BANCO XDRFT"
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => 248_292.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 248_292.0,
+             "valorPagar" => 248_292.0
+           }
+
+    assert [
+             %{
+               "numeroLinea" => 1,
+               "indicadorFacturacion" => 4,
+               "unidadMedida" => "15"
+             }
+           ] = mapped["detallesItems"]
+
+    assert mapped["descuentosORecargos"] == [
+             %{
+               "numeroLinea" => 1,
+               "tipoAjuste" => "D",
+               "descripcionDescuentooRecargo" => "DESCUENTO ADMINISTRATIVO",
+               "tipoValor" => "%",
+               "valorDescuentooRecargo" => 10.0,
+               "montoDescuentooRecargo" => 27_588.0,
+               "indicadorFacturacionDescuentooRecargo" => 4
+             }
+           ]
+  end
+
+  test "maps E45 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 45_287,
+      "amount_tax" => 5400.0,
+      "amount_total" => 35_400.0,
+      "amount_untaxed" => 30_000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "payment_reference" => "INV/2026/0045",
+      "invoice_items" => [
+        %{
+          "name" => "Servicio publicidad",
+          "description" => "Prestacion de servicios de publicidad",
+          "price_subtotal" => 30_000.0,
+          "price_unit" => 30_000.0,
+          "quantity" => 1.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e45(payload, company, e_doc: "E450000000001")
+
+    assert mapped["encabezado"]["idDoc"] == %{
+             "tipoeCF" => 45,
+             "encf" => "E450000000001",
+             "fechaVencimientoSecuencia" => "10-03-2026",
+             "indicadorMontoGravado" => 0,
+             "tipoIngresos" => "01",
+             "tipoPago" => 1,
+             "tablaFormasPago" => []
+           }
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoGravadoTotal" => 30_000.0,
+             "montoGravadoI1" => 30_000.0,
+             "itbis1" => 18,
+             "totalITBIS" => 5400.0,
+             "totalITBIS1" => 5400.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 35_400.0,
+             "valorPagar" => 35_400.0
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 1,
+               "indicadorBienoServicio" => 2,
+               "descripcionItem" => "Prestacion de servicios de publicidad",
+               "unidadMedida" => "43"
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E46 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 46_287,
+      "amount_tax" => 0.0,
+      "amount_total" => 1_800_000.0,
+      "amount_untaxed" => 1_800_000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "payment_reference" => "INV/2026/0046",
+      "fecha_limite_pago" => "2026-05-06",
+      "termino_pago" => "1 mes",
+      "fecha_embarque" => "2026-04-10",
+      "numero_embarque" => "10010-1207-000254",
+      "numero_contenedor" => "ERTY227958722",
+      "peso_bruto" => 25_000.0,
+      "peso_neto" => 24_878.0,
+      "unidad_peso_bruto" => "21",
+      "unidad_peso_neto" => "21",
+      "cantidad_bulto" => 250.0,
+      "unidad_bulto" => "25",
+      "volumen_bulto" => 45.0,
+      "unidad_volumen" => "27",
+      "numero_albaran" => "56789UJILLL",
+      "contacto_entrega" => "JACINTO MANON",
+      "direccion_entrega" => "ZONA HAINA",
+      "telefono_adicional" => "809-555-5050",
+      "invoice_items" => [
+        %{
+          "name" => "AGUACATE CRIOLLO",
+          "default_code" => "123456",
+          "price_subtotal" => 1_800_000.0,
+          "price_unit" => 18_000.0,
+          "quantity" => 100.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e46(payload, company, e_doc: "E460000000001")
+
+    assert mapped["encabezado"]["idDoc"]["tipoeCF"] == 46
+    assert mapped["encabezado"]["idDoc"]["tipoPago"] == 2
+    assert mapped["encabezado"]["idDoc"]["fechaLimitePago"] == "06-05-2026"
+    assert mapped["encabezado"]["idDoc"]["terminoPago"] == "1 mes"
+
+    assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
+             %{"formaPago" => 2, "montoPago" => 1_800_000.0}
+           ]
+
+    assert mapped["encabezado"]["transporte"] == %{"numeroAlbaran" => "56789UJILLL"}
+
+    assert mapped["encabezado"]["informacionesAdicionales"]["numeroEmbarque"] ==
+             "10010-1207-000254"
+
+    assert mapped["encabezado"]["informacionesAdicionales"]["pesoBruto"] == 25_000.0
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoGravadoTotal" => 1_800_000.0,
+             "montoGravadoI3" => 1_800_000.0,
+             "itbis3" => 0,
+             "totalITBIS" => 0,
+             "totalITBIS3" => 0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 1_800_000.0
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 3,
+               "unidadMedida" => "43",
+               "tablaCodigosItem" => [%{"tipoCodigo" => "INTERNA", "codigoItem" => "123456"}]
+             }
+           ] = mapped["detallesItems"]
+  end
+
+  test "maps E47 odoo payload into the target etax shape" do
+    payload = %{
+      "_id" => 47_287,
+      "amount_tax" => 0.0,
+      "amount_total" => 180_000.0,
+      "amount_untaxed" => 180_000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "payment_reference" => "INV/2026/0047",
+      "identificador_extranjero" => "533445888",
+      "invoice_partner_display_name" => "ALEJA FERMIN SANTOS",
+      "numero_cuenta_pago" => "BB00058745214789635111111111",
+      "banco_pago" =>
+        "BB0111111111111111111111111111111111111111111111111111111111111111111111111",
+      "currency" => "USD",
+      "tipo_cambio" => 60.0,
+      "total_isr_retencion" => 48_600.0,
+      "invoice_items" => [
+        %{
+          "name" => "LICENCIA WYI",
+          "price_subtotal" => 180_000.0,
+          "price_unit" => 180_000.0,
+          "quantity" => 1.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e47(payload, company, e_doc: "E470000000001")
+
+    assert mapped["encabezado"]["idDoc"]["tipoeCF"] == 47
+    assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == []
+    assert mapped["encabezado"]["idDoc"]["numeroCuentaPago"] == "BB00058745214789635111111111"
+
+    assert mapped["encabezado"]["idDoc"]["bancoPago"] ==
+             "BB0111111111111111111111111111111111111111111111111111111111111111111111111"
+
+    assert mapped["encabezado"]["comprador"] == %{
+             "identificadorExtranjero" => "533445888",
+             "razonSocialComprador" => "ALEJA FERMIN SANTOS"
+           }
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => 180_000.0,
+             "impuestosAdicionales" => [],
+             "montoTotal" => 180_000.0,
+             "totalISRRetencion" => 48_600.0
+           }
+
+    assert mapped["encabezado"]["otraMoneda"] == %{
+             "tipoMoneda" => "USD",
+             "tipoCambio" => 60.0,
+             "montoExentoOtraMoneda" => 3000.0,
+             "impuestosAdicionalesOtraMoneda" => [],
+             "montoTotalOtraMoneda" => 3000.0
+           }
+
+    assert [
+             %{
+               "indicadorFacturacion" => 4,
+               "unidadMedida" => "43",
+               "retencion" => %{
+                 "indicadorAgenteRetencionoPercepcion" => 1,
+                 "montoISRRetenido" => 48_600.0
+               },
+               "otraMonedaDetalle" => %{
+                 "precioOtraMoneda" => 3000.0,
+                 "montoItemOtraMoneda" => 3000.0
+               }
+             }
+           ] = mapped["detallesItems"]
+
+    assert mapped["subtotales"] == [
+             %{
+               "numeroSubTotal" => 1,
+               "descripcionSubtotal" => "N/A",
+               "orden" => 1,
+               "subTotalExento" => 180_000.0,
+               "montoSubTotal" => 180_000.0,
+               "lineas" => 1
+             }
+           ]
   end
 end

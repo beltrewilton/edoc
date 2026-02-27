@@ -21,13 +21,13 @@ defmodule EdocWeb.WebhookController do
          :ok <- ensure_tenant_context(tenant),
          {:ok, company} <- fetch_company(company_id, tenant),
          {:ok, enriched_payload, odoo_context} <- enrich_payload(payload, company),
-         {:ok, transaction} <-
+         {:ok, %{transaction: transaction}} <-
            InvoiceService.send_invoice(
              enriched_payload,
              company,
              tenant: tenant,
              odoo_context: odoo_context,
-             request_log_entry: build_log_entry(conn, enriched_payload)
+             request_context: request_context(conn)
            ) do
       broadcast_transaction_event(user, company, transaction)
 
@@ -49,6 +49,11 @@ defmodule EdocWeb.WebhookController do
         conn
         |> put_status(:unprocessable_entity)
         |> json(%{error: "unable to store transaction", details: errors_on(changeset)})
+
+      {:error, %{provider_response: provider_response}} ->
+        conn
+        |> put_status(:bad_gateway)
+        |> json(%{error: "failed to send invoice to etaxcore", details: provider_response})
 
       {:error, reason} ->
         conn
@@ -105,7 +110,10 @@ defmodule EdocWeb.WebhookController do
     end
   rescue
     exception ->
-      Logger.error("Failed to enrich payload with Odoo invoice lines: #{Exception.message(exception)}")
+      Logger.error(
+        "Failed to enrich payload with Odoo invoice lines: #{Exception.message(exception)}"
+      )
+
       {:error, exception}
   end
 
@@ -160,25 +168,14 @@ defmodule EdocWeb.WebhookController do
 
   defp normalize_invoice_id(_), do: nil
 
-  defp build_log_entry(conn, payload) do
-    headers_map =
-      conn.req_headers
-      |> Map.new(fn {key, value} -> {"header_" <> key, value} end)
-
-    base_entry = %{
-      ts: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
-      ip: format_ip(conn.remote_ip),
+  defp request_context(conn) do
+    %{
       method: conn.method,
       path: conn.request_path,
-      headers: Map.new(conn.req_headers),
-      body: payload
+      remote_ip: conn.remote_ip,
+      headers: conn.req_headers
     }
-
-    Map.merge(base_entry, headers_map)
   end
-
-  defp format_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
-  defp format_ip(other), do: to_string(:inet.ntoa(other))
 
   defp errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->

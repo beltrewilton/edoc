@@ -1,0 +1,74 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 32,
+      "encf": "E320000000001",
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": []
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "320301",
+      "provincia": "320000",
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "codigoVendedor": "AA0000000100000000010000000002000000000300000000050000000006",
+      "numeroFacturaInterna": "123456789016",
+      "numeroPedidoInterno": "123456789016",
+      "zonaVenta": "NORTE",
+      "fechaEmision": "01-04-2020"
+    },
+    "comprador": {
+      "rncComprador": "131880681",
+      "razonSocialComprador": "DOCUMENTOS ELECTRONICOS DE 03",
+      "contactoComprador": "MARCOS LATIPLOL",
+      "correoComprador": "MARCOSLATIPLOL@KKKK.COM",
+      "direccionComprador": "CALLE JACINTO DE LA CONCHA FELIZ ESQUINA 27 DE FEBRERO,FRENTE A DOMINO",
+      "municipioComprador": "010100",
+      "provinciaComprador": "010000",
+      "fechaEntrega": "10-10-2020",
+      "fechaOrdenCompra": "10-11-2018",
+      "numeroOrdenCompra": "4500352238",
+      "codigoInternoComprador": "10633440"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "8019289",
+      "numeroReferencia": 1447
+    },
+    "totales": {
+      "montoExento": 300000,
+      "impuestosAdicionales": [],
+      "montoTotal": 300000
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "LECHE",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 7500,
+      "unidadMedida": "47",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 40,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 300000
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:23"
+}

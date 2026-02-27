@@ -4,85 +4,115 @@ defmodule EdocWeb.UserLive.Settings do
   on_mount {EdocWeb.UserAuth, :require_sudo_mode}
 
   alias Edoc.Accounts
+  @invalid_tenant_prefix "Not.Found.In.TenantContext"
 
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="text-center">
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-3xl space-y-5">
         <.header>
           Account Settings
-          <:subtitle>Manage your account email address and password settings</:subtitle>
+          <:subtitle>Manage tenant, email address, and password settings.</:subtitle>
         </.header>
+
+        <.surface class="space-y-4 border-indigo-100/70 dark:border-indigo-500/20">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Tenant</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Set your tenant once. After creation, this field becomes locked.
+            </p>
+          </div>
+
+          <.form
+            for={@tenant_form}
+            id="tenant_form"
+            phx-submit="update_tenant"
+            phx-change="validate_tenant"
+            class="space-y-3"
+          >
+            <.input
+              field={@tenant_form[:tenant]}
+              type="text"
+              label="Tenant"
+              readonly={@tenant_locked}
+              disabled={@tenant_locked}
+              required
+            />
+            <.button type="submit" phx-disable-with="Saving..." disabled={@tenant_locked}>
+              Update tenant
+            </.button>
+          </.form>
+        </.surface>
+
+        <.surface class="space-y-4 border-indigo-100/70 dark:border-indigo-500/20">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Email</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Use a valid address where you can receive confirmation links.
+            </p>
+          </div>
+
+          <.form
+            for={@email_form}
+            id="email_form"
+            phx-submit="update_email"
+            phx-change="validate_email"
+            class="space-y-3"
+          >
+            <.input
+              field={@email_form[:email]}
+              type="email"
+              label="Email"
+              autocomplete="username"
+              required
+            />
+            <.button type="submit" phx-disable-with="Changing...">Change email</.button>
+          </.form>
+        </.surface>
+
+        <.surface class="space-y-4 border-indigo-100/70 dark:border-indigo-500/20">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900 dark:text-slate-100">Password</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Set a new password for your next authenticated session.
+            </p>
+          </div>
+
+          <.form
+            for={@password_form}
+            id="password_form"
+            action={~p"/users/update-password"}
+            method="post"
+            phx-change="validate_password"
+            phx-submit="update_password"
+            phx-trigger-action={@trigger_submit}
+            class="space-y-3"
+          >
+            <input
+              name={@password_form[:email].name}
+              type="hidden"
+              id="hidden_user_email"
+              autocomplete="username"
+              value={@current_email}
+            />
+            <.input
+              field={@password_form[:password]}
+              type="password"
+              label="New password"
+              autocomplete="new-password"
+              required
+            />
+            <.input
+              field={@password_form[:password_confirmation]}
+              type="password"
+              label="Confirm new password"
+              autocomplete="new-password"
+            />
+            <.button type="submit" phx-disable-with="Saving...">Save password</.button>
+          </.form>
+        </.surface>
       </div>
-
-      <.form
-        for={@tenant_form}
-        id="tenant_form"
-        phx-submit="update_tenant"
-        phx-change="validate_tenant"
-      >
-        <.input
-          field={@tenant_form[:tenant]}
-          type="text"
-          label="Tenant"
-          readonly={@tenant_locked}
-          disabled={@tenant_locked}
-          required
-        />
-        <.button variant="primary" phx-disable-with="Saving..." disabled={@tenant_locked}>
-          Update Tenant
-        </.button>
-      </.form>
-
-      <div class="divider" />
-
-      <.form for={@email_form} id="email_form" phx-submit="update_email" phx-change="validate_email">
-        <.input
-          field={@email_form[:email]}
-          type="email"
-          label="Email"
-          autocomplete="username"
-          required
-        />
-        <.button variant="primary" phx-disable-with="Changing...">Change Email</.button>
-      </.form>
-
-      <div class="divider" />
-
-      <.form
-        for={@password_form}
-        id="password_form"
-        action={~p"/users/update-password"}
-        method="post"
-        phx-change="validate_password"
-        phx-submit="update_password"
-        phx-trigger-action={@trigger_submit}
-      >
-        <input
-          name={@password_form[:email].name}
-          type="hidden"
-          id="hidden_user_email"
-          autocomplete="username"
-          value={@current_email}
-        />
-        <.input
-          field={@password_form[:password]}
-          type="password"
-          label="New password"
-          autocomplete="new-password"
-          required
-        />
-        <.input
-          field={@password_form[:password_confirmation]}
-          type="password"
-          label="Confirm new password"
-          autocomplete="new-password"
-        />
-        <.button variant="primary" phx-disable-with="Saving...">
-          Save Password
-        </.button>
-      </.form>
     </Layouts.app>
     """
   end
@@ -98,7 +128,7 @@ defmodule EdocWeb.UserLive.Settings do
           put_flash(socket, :error, "Email change link is invalid or it has expired.")
       end
 
-    {:ok, push_navigate(socket, to: ~p"/users/settings")}
+    {:ok, socket |> assign(:page_title, "Account Settings") |> push_navigate(to: ~p"/users/settings")}
   end
 
   def mount(_params, _session, socket) do
@@ -109,11 +139,12 @@ defmodule EdocWeb.UserLive.Settings do
 
     socket =
       socket
+      |> assign(:page_title, "Account Settings")
       |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
       |> assign(:password_form, to_form(password_changeset))
       |> assign(:tenant_form, to_form(tenant_changeset))
-      |> assign(:tenant_locked, Triplex.exists?(user.tenant))
+      |> assign(:tenant_locked, tenant_exists?(user.tenant))
       |> assign(:trigger_submit, false)
 
     {:ok, socket}
@@ -177,13 +208,14 @@ defmodule EdocWeb.UserLive.Settings do
         {:ok, user} ->
           tenant = Map.get(user_params, "tenant")
 
-          case Triplex.exists?(tenant) do
+          case tenant_exists?(tenant) do
             true ->
               {:noreply,
                socket
                |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
                |> assign(:tenant_locked, true)
-               |> put_flash(:info, "Tenant already exists and is now locked.")}
+               |> put_flash(:info, "Tenant already exists and is now locked.")
+               |> schedule_companies_redirect()}
 
             false ->
               case Triplex.create(tenant) do
@@ -192,7 +224,8 @@ defmodule EdocWeb.UserLive.Settings do
                    socket
                    |> assign(:tenant_form, to_form(Accounts.change_user_tenant(user, %{})))
                    |> assign(:tenant_locked, true)
-                   |> put_flash(:info, "Tenant updated and created successfully.")}
+                   |> put_flash(:info, "Tenant updated and created successfully.")
+                   |> schedule_companies_redirect()}
 
                 {:error, reason} ->
                   {:noreply,
@@ -232,5 +265,34 @@ defmodule EdocWeb.UserLive.Settings do
       changeset ->
         {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
     end
+  end
+
+  @impl true
+  def handle_info(:redirect_to_companies_after_tenant_update, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/companies")}
+  end
+
+  defp tenant_exists?(tenant) when is_binary(tenant) do
+    cond do
+      tenant == "" ->
+        false
+
+      String.starts_with?(tenant, @invalid_tenant_prefix) ->
+        false
+
+      true ->
+        try do
+          Triplex.exists?(tenant)
+        rescue
+          _ -> false
+        end
+    end
+  end
+
+  defp tenant_exists?(_), do: false
+
+  defp schedule_companies_redirect(socket) do
+    Process.send_after(self(), :redirect_to_companies_after_tenant_update, 500)
+    socket
   end
 end

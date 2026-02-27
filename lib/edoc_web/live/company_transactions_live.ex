@@ -53,144 +53,145 @@ defmodule EdocWeb.CompanyTransactionsLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-6xl space-y-5">
         <div class="flex flex-wrap items-center gap-3">
-          <.button navigate={~p"/companies"} class="btn btn-ghost btn-sm gap-1 text-sm">
+          <.button navigate={~p"/companies"} variant="secondary">
             <.icon name="hero-arrow-left" class="size-4" /> Back to companies
           </.button>
-
           <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-zinc-400">Transactions</p>
-            <h1 class="text-2xl font-semibold text-white">{@company.company_name}</h1>
+            <p class="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+              Transactions
+            </p>
+            <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+              {@company.company_name}
+            </h1>
           </div>
-
-          <span class="badge badge-outline badge-sm ml-auto text-xs font-medium tracking-wide">
+          <span class="ml-auto inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {format_company_rnc(@company)}
           </span>
         </div>
 
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-white shadow-2xl backdrop-blur-sm">
+        <.surface>
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-zinc-400">Status</p>
-              <p class="mt-1 flex items-center gap-2 text-base font-semibold">
-                <span class={[
-                  "badge badge-sm",
-                  @company.connected && "badge-success",
-                  !@company.connected && "badge-ghost"
-                ]}>
-                  {(@company.connected && "Connected") || "Pending"}
-                </span>
-                <span class={[
-                  "badge badge-sm",
-                  @company.active && "badge-primary badge-outline",
-                  !@company.active && "badge-ghost"
-                ]}>
-                  {(@company.active && "Active") || "Inactive"}
-                </span>
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Status
               </p>
+              <div class="mt-2 flex items-center gap-2">
+                <.status_pill tone={if(@company.connected, do: "success", else: "warning")}>
+                  {if(@company.connected, do: "Connected", else: "Pending")}
+                </.status_pill>
+                <.status_pill tone={if(@company.active, do: "info", else: "neutral")}>
+                  {if(@company.active, do: "Active", else: "Inactive")}
+                </.status_pill>
+              </div>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-zinc-400">Odoo URL</p>
-              <p class="mt-1 truncate font-semibold text-base text-white">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Odoo URL
+              </p>
+              <p class="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                 {@company.odoo_url || "—"}
               </p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-zinc-400">Odoo user</p>
-              <p class="mt-1 truncate font-semibold text-base text-white">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Odoo user
+              </p>
+              <p class="mt-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                 {@company.odoo_user || "—"}
               </p>
             </div>
             <div>
-              <p class="text-xs uppercase tracking-[0.3em] text-zinc-400">Updated</p>
-              <p class="mt-1 font-semibold text-base text-white">
+              <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Updated
+              </p>
+              <p class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
                 {format_timestamp(@company.updated_at)}
               </p>
             </div>
           </div>
-        </div>
+        </.surface>
 
-        <div class="rounded-2xl border border-white/10 bg-gradient-to-b from-zinc-900/70 to-zinc-900/40 p-5 shadow-2xl">
-          <div class="flex flex-wrap items-center gap-4 border-b border-white/10 pb-4">
+        <.surface class="p-0">
+          <div class="flex flex-wrap items-center gap-3 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
             <div>
-              <p class="text-sm uppercase tracking-[0.25em] text-zinc-400">Live feed</p>
-              <h2 class="text-xl font-semibold text-white">Latest Odoo transactions</h2>
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                Live feed
+              </p>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                Latest Odoo transactions
+              </h2>
             </div>
-            <div class="ml-auto flex items-center gap-2 text-xs text-zinc-400">
-              <span class="size-2 animate-pulse rounded-full bg-emerald-400/80"></span> Live
-            </div>
-          </div>
-
-          <div class="mt-4">
-            <div class="grid grid-cols-2 gap-2 rounded-xl border border-white/5 bg-white/5 px-4 py-2 text-[0.7rem] uppercase tracking-[0.35em] text-zinc-400 sm:grid-cols-6">
-              <p>e-DOC</p>
-              <p>RNC</p>
-              <p>Amount</p>
-              <p>Tax</p>
-              <p>Requested at</p>
-              <p class="text-right">Payload</p>
-            </div>
-
-            <div
-              id="transactions"
-              phx-update="stream"
-              class="mt-3 divide-y divide-white/5 rounded-2xl border border-white/5 bg-white/5"
-            >
-              <div class="hidden only:flex flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-zinc-400">
-                <.icon name="hero-receipt-percent" class="size-8 text-zinc-500" />
-                <p>No transactions yet. Connect your automations to start streaming activity.</p>
-              </div>
-
-              <div
-                :for={{dom_id, transaction} <- @streams.transactions}
-                id={dom_id}
-                data-role="transaction-row"
-                data-rnc={odoo_value(transaction, :rnc) || ""}
-                class="grid grid-cols-1 gap-4 px-4 py-5 transition duration-200 hover:bg-white/5 sm:grid-cols-6"
-              >
-                <div>
-                  <p class="text-xs font-semibold text-white">
-                    {display_edoc(transaction)}
-                  </p>
-                  <p class="text-[0.7rem] text-zinc-400">ID: {transaction.id}</p>
-                </div>
-
-                <div class="text-sm font-medium text-white">
-                  {odoo_value(transaction, :rnc) || "—"}
-                </div>
-
-                <div class="text-sm font-semibold text-emerald-300">
-                  <span data-field="amount">{format_currency(odoo_value(transaction, :amount))}</span>
-                </div>
-
-                <div class="text-sm font-semibold text-sky-300">
-                  <span data-field="tax">{format_currency(odoo_value(transaction, :tax))}</span>
-                </div>
-
-                <div class="text-sm text-zinc-300">
-                  {format_timestamp(transaction.odoo_request_at)}
-                </div>
-
-                <div class="sm:text-right">
-                  <details class="group inline-block w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-left text-xs text-zinc-100 backdrop-blur">
-                    <summary class="flex cursor-pointer items-center gap-2 text-[0.65rem] uppercase tracking-[0.4em] text-zinc-400">
-                      <.icon
-                        name="hero-code-bracket-square"
-                        class="size-4 transition group-open:rotate-90"
-                      /> Raw JSON
-                    </summary>
-                    <pre
-                      phx-no-curly-interpolation
-                      class="mt-2 max-h-52 overflow-x-auto whitespace-pre-wrap rounded-lg bg-zinc-900/80 p-3 text-left font-mono text-[0.7rem] leading-relaxed text-zinc-100"
-                    ><%= transaction_payload(transaction) %></pre>
-                  </details>
-                </div>
-              </div>
+            <div class="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300">
+              <span class="size-2 animate-pulse rounded-full bg-emerald-500"></span>
+              Live
             </div>
           </div>
-        </div>
+
+          <div class="overflow-x-auto">
+            <div class="min-w-[900px]">
+              <div class="grid grid-cols-6 gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-400">
+                <p>e-DOC</p>
+                <p>RNC</p>
+                <p>Amount</p>
+                <p>Tax</p>
+                <p>Requested at</p>
+                <p class="text-right">Payload</p>
+              </div>
+
+              <div id="transactions" phx-update="stream" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <div class="hidden only:flex flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+                  <.icon name="hero-receipt-percent" class="size-8 text-slate-400 dark:text-slate-500" />
+                  <p>No transactions yet. Connect your automations to start streaming activity.</p>
+                </div>
+
+                <div
+                  :for={{dom_id, transaction} <- @streams.transactions}
+                  id={dom_id}
+                  data-role="transaction-row"
+                  data-rnc={odoo_value(transaction, :rnc) || ""}
+                  class="grid grid-cols-6 gap-2 px-5 py-4 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/35"
+                >
+                  <div>
+                    <p class="font-semibold text-slate-900 dark:text-slate-100">{display_edoc(transaction)}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">ID: {transaction.id}</p>
+                  </div>
+
+                  <div class="font-medium text-slate-700 dark:text-slate-300">
+                    {odoo_value(transaction, :rnc) || "—"}
+                  </div>
+                  <div class="font-semibold text-emerald-700 dark:text-emerald-300">
+                    <span data-field="amount">{format_currency(odoo_value(transaction, :amount))}</span>
+                  </div>
+                  <div class="font-semibold text-sky-700 dark:text-sky-300">
+                    <span data-field="tax">{format_currency(odoo_value(transaction, :tax))}</span>
+                  </div>
+                  <div class="text-slate-600 dark:text-slate-300">
+                    {format_timestamp(transaction.odoo_request_at)}
+                  </div>
+
+                  <div class="text-right">
+                    <details class="group inline-block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                      <summary class="flex cursor-pointer items-center justify-end gap-1 font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                        <.icon
+                          name="hero-code-bracket-square"
+                          class="size-4 transition group-open:rotate-90"
+                        />
+                        Raw JSON
+                      </summary>
+                      <pre
+                        phx-no-curly-interpolation
+                        class="mt-2 max-h-52 overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-900 p-3 text-left font-mono text-[0.7rem] leading-relaxed text-slate-100"
+                      ><%= transaction_payload(transaction) %></pre>
+                    </details>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </.surface>
       </div>
     </Layouts.app>
     """

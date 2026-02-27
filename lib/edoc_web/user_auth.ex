@@ -16,6 +16,7 @@ defmodule EdocWeb.UserAuth do
     max_age: @max_cookie_age_in_days * 24 * 60 * 60,
     same_site: "Lax"
   ]
+  @invalid_tenant_prefix "Not.Found.In.TenantContext"
 
   # How old the session token should be before a new one is issued. When a request is made
   # with a session token older than this value, then a new session token will be created
@@ -30,14 +31,14 @@ defmodule EdocWeb.UserAuth do
   Logs the user in.
 
   Redirects to the session's `:user_return_to` path
-  or falls back to the `signed_in_path/1`.
+  or falls back to a tenant-aware default path.
   """
   def log_in_user(conn, user, params \\ %{}) do
     user_return_to = get_session(conn, :user_return_to)
 
     conn
     |> create_or_extend_session(user, params)
-    |> redirect(to: user_return_to || signed_in_path(conn))
+    |> redirect(to: user_return_to || signed_in_path_for_user(user))
   end
 
   @doc """
@@ -219,17 +220,27 @@ defmodule EdocWeb.UserAuth do
     socket = mount_current_scope(socket, session)
 
     if socket.assigns.current_scope && socket.assigns.current_scope.user do
-      # Ensure tenant is set on the LiveView process when authenticated
-      case get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)]) do
-        tenant when is_binary(tenant) and tenant != "" ->
-          IO.inspect(tenant, label: "Tenant")
+      tenant = get_in(socket.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)])
+
+      cond do
+        valid_tenant?(tenant) ->
           Edoc.TenantContext.put_tenant(tenant)
+          {:cont, socket}
 
-        _ ->
-          :ok
+        socket.view == EdocWeb.UserLive.Settings ->
+          {:cont, socket}
+
+        true ->
+          socket =
+            socket
+            |> Phoenix.LiveView.put_flash(
+              :error,
+              "Please configure your tenant in account settings before continuing."
+            )
+            |> Phoenix.LiveView.redirect(to: ~p"/users/settings")
+
+          {:halt, socket}
       end
-
-      {:cont, socket}
     else
       socket =
         socket
@@ -265,7 +276,7 @@ defmodule EdocWeb.UserAuth do
       scope = Scope.for_user(user)
 
       # Ensure the LiveView process has the tenant set for multi-tenant Repo prefixes
-      if is_struct(user) and is_binary(user.tenant) and user.tenant != "" do
+      if is_struct(user) and valid_tenant?(user.tenant) do
         Edoc.TenantContext.put_tenant(user.tenant)
       end
 
@@ -274,9 +285,13 @@ defmodule EdocWeb.UserAuth do
   end
 
   @doc "Returns the path to redirect to after log in."
-  # the user was already logged in, redirect to settings
-  def signed_in_path(%Plug.Conn{assigns: %{current_scope: %Scope{user: %Accounts.User{}}}}) do
-    ~p"/users/settings"
+  # users with invalid/missing tenant must complete setup first
+  def signed_in_path(
+        %Plug.Conn{
+          assigns: %{current_scope: %Scope{user: %Accounts.User{tenant: tenant}}}
+        }
+      ) do
+    if valid_tenant?(tenant), do: ~p"/companies", else: ~p"/users/settings"
   end
 
   def signed_in_path(_), do: ~p"/"
@@ -286,13 +301,22 @@ defmodule EdocWeb.UserAuth do
   """
   def require_authenticated_user(conn, _opts) do
     if conn.assigns.current_scope && conn.assigns.current_scope.user do
-      # Ensure tenant is set on the current request process when authenticated
-      case get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)]) do
-        tenant when is_binary(tenant) and tenant != "" -> Edoc.TenantContext.put_tenant(tenant)
-        _ -> :ok
-      end
+      tenant = get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)])
 
-      conn
+      cond do
+        valid_tenant?(tenant) ->
+          Edoc.TenantContext.put_tenant(tenant)
+          conn
+
+        String.starts_with?(conn.request_path || "", "/users/settings") ->
+          conn
+
+        true ->
+          conn
+          |> put_flash(:error, "Please configure your tenant in account settings.")
+          |> redirect(to: ~p"/users/settings")
+          |> halt()
+      end
     else
       conn
       |> put_flash(:error, "You must log in to access this page.")
@@ -307,4 +331,16 @@ defmodule EdocWeb.UserAuth do
   end
 
   defp maybe_store_return_to(conn), do: conn
+
+  defp signed_in_path_for_user(%Accounts.User{tenant: tenant}) do
+    if valid_tenant?(tenant), do: ~p"/companies", else: ~p"/users/settings"
+  end
+
+  defp signed_in_path_for_user(_), do: ~p"/"
+
+  defp valid_tenant?(tenant) when is_binary(tenant) do
+    tenant != "" and not String.starts_with?(tenant, @invalid_tenant_prefix)
+  end
+
+  defp valid_tenant?(_), do: false
 end

@@ -1,0 +1,82 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 45,
+      "encf": "E450000000001",
+      "fechaVencimientoSecuencia": "31-12-2025",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": []
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "010101",
+      "provincia": "010000",
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "codigoVendedor": "AA0000000100000000010000000002000000000300000000050000000006",
+      "numeroFacturaInterna": "123456789016",
+      "numeroPedidoInterno": "123456789016",
+      "zonaVenta": "NORT",
+      "fechaEmision": "01-04-2020"
+    },
+    "comprador": {
+      "rncComprador": "131880657",
+      "razonSocialComprador": "DOCUMENTOS ELECTRONICOS DE 04",
+      "contactoComprador": "MARCOS LATIPLOL",
+      "correoComprador": "MARCOSLATIPLOL@KKKK.COM",
+      "direccionComprador": "CALLE JACINTO DE LA CONCHA FELIZ ESQUINA 27 DE FEBRERO,FRENTE A DOMINO",
+      "municipioComprador": "010100",
+      "provinciaComprador": "010000",
+      "fechaEntrega": "10-10-2020",
+      "fechaOrdenCompra": "10-11-2018",
+      "numeroOrdenCompra": "4500352238",
+      "codigoInternoComprador": "10633440"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "8019289",
+      "numeroReferencia": 1447
+    },
+    "totales": {
+      "montoGravadoTotal": 30000,
+      "montoGravadoI1": 30000,
+      "itbis1": 18,
+      "totalITBIS": 5400,
+      "totalITBIS1": 5400,
+      "impuestosAdicionales": [],
+      "montoTotal": 35400,
+      "valorPagar": 35400
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,
+      "nombreItem": "SERVICIO PUBLICIDAD",
+      "indicadorBienoServicio": 2,
+      "descripcionItem": "prestación de servicios relacionados con la creación, ejecución y distribución de campañas publicitarias.",
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 30000,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 30000
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:32"
+}

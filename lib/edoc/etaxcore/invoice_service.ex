@@ -10,91 +10,134 @@ defmodule Edoc.Etaxcore.InvoiceService do
   alias Edoc.OdooAutomationClient, as: Odoo
   alias Edoc.Repo
   alias Edoc.RequestLogger
-  alias Edoc.TenantContext
   alias Edoc.Transaction
   require Logger
 
-  @dispatch_delay_ms 5_000
-
   @type odoo_context :: {Odoo.t(), integer()} | nil
 
+  @type success_result :: %{
+          transaction: Transaction.t(),
+          provider_response: map()
+        }
+
+  @type error_result :: %{
+          optional(:transaction) => Transaction.t(),
+          provider_response: map()
+        }
+
   @spec send_invoice(map(), Company.t(), keyword()) ::
-          {:ok, Transaction.t()} | {:error, term()}
+          {:ok, success_result()} | {:error, error_result() | Ecto.Changeset.t() | term()}
   def send_invoice(payload, %Company{} = company, opts \\ []) when is_map(payload) do
     tenant = Keyword.fetch!(opts, :tenant)
-    request_log_entry = Keyword.get(opts, :request_log_entry)
+    request_context = Keyword.get(opts, :request_context, %{})
     odoo_context = Keyword.get(opts, :odoo_context)
 
-    with :ok <- maybe_log_request(request_log_entry),
+    with :ok <- log_request(payload, request_context),
          {:ok, e_doc, doc_type} <- generate_edoc(payload),
-         {:ok, transaction} <- insert_transaction(company, tenant, payload, e_doc) do
-      maybe_dispatch_request(transaction, tenant, payload, company, odoo_context, e_doc, doc_type)
-      {:ok, transaction}
+         {:ok, transaction} <- insert_transaction(company, tenant, payload, e_doc),
+         {:ok, request_payload} <- build_request_payload(payload, company, e_doc),
+         {:ok, result} <-
+           dispatch_request(
+             transaction,
+             tenant,
+             request_payload,
+             payload,
+             odoo_context,
+             e_doc,
+             doc_type
+           ) do
+      {:ok, result}
     end
   end
 
-  defp maybe_log_request(nil), do: :ok
-
-  defp maybe_log_request(%{} = entry) do
-    RequestLogger.append(entry)
+  defp log_request(payload, %{} = request_context) do
+    payload
+    |> build_log_entry(request_context)
+    |> RequestLogger.append()
   rescue
     exception -> {:error, {:request_log_error, exception}}
   end
 
-  defp maybe_dispatch_request(
-         %Transaction{} = transaction,
-         tenant,
-         payload,
-         %Company{} = company,
-         odoo_context,
-         e_doc,
-         doc_type
-       ) do
-    if valid_identifier?(e_doc) and valid_identifier?(doc_type) do
-      Task.start(fn ->
-        TenantContext.put_tenant(tenant)
-        Process.sleep(@dispatch_delay_ms)
+  defp build_log_entry(payload, context) do
+    headers = Map.get(context, :headers, [])
 
-        send_to_provider(
-          transaction,
-          tenant,
-          payload,
-          company,
-          odoo_context,
-          e_doc,
-          doc_type
-        )
-      end)
-    else
-      :ok
-    end
+    headers_map =
+      headers
+      |> Map.new(fn {key, value} -> {"header_" <> to_string(key), value} end)
+
+    base_entry = %{
+      ts: DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601(),
+      ip: format_ip(Map.get(context, :remote_ip)),
+      method: Map.get(context, :method),
+      path: Map.get(context, :path),
+      headers: Map.new(headers),
+      body: payload
+    }
+
+    Map.merge(base_entry, headers_map)
   end
 
-  defp send_to_provider(
-         %Transaction{} = tx,
-         tenant,
+  defp build_request_payload(payload, %Company{} = company, e_doc) do
+    {:ok, PayloadMapper.map_invoice(payload, company, e_doc: e_doc)}
+  end
+
+  defp dispatch_request(
+         %Transaction{} = transaction,
+         _tenant,
+         request_payload,
          payload,
-         %Company{} = company,
          odoo_context,
          e_doc,
          doc_type
        ) do
-    request_payload = PayloadMapper.map_invoice(payload, company, e_doc: e_doc, doc_type: doc_type)
-    request_at = DateTime.utc_now(:second)
+    _request_at = DateTime.utc_now(:second)
 
-    log_payloads_as_json(payload, request_payload)
+    print_json("request_payload", request_payload)
+    print_json("payload", payload)
 
-    result =
-      case maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type) do
-        :ok -> %{}
-          # safe_send_invoice(request_payload)
+    maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type)
 
-        {:error, reason} ->
-          {:error, {:odoo_sequence_update_error, reason}}
-      end
+    # provider_result =
+    #   case maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type) do
+    #     :ok -> safe_send_invoice(request_payload)
+    #     {:error, reason} -> {:error, {:odoo_sequence_update_error, reason}}
+    #   end
 
-    # persist_provider_exchange(tx, tenant, request_payload, request_at, result)
-    result
+    # normalized_provider_response = normalize_provider_response(provider_result)
+
+    {:ok,
+     %{
+       transaction: transaction,
+       provider_response: %{}
+     }}
+
+    # case persist_provider_exchange(
+    #        transaction,
+    #        tenant,
+    #        request_payload,
+    #        request_at,
+    #        normalized_provider_response
+    #      ) do
+    #   :ok ->
+    #     case provider_result do
+    #       {:ok, _body} ->
+    #         {:ok,
+    #          %{
+    #            transaction: transaction,
+    #            provider_response: normalized_provider_response
+    #          }}
+
+    #       {:error, _reason} ->
+    #         {:error,
+    #          %{
+    #            transaction: transaction,
+    #            provider_response: normalized_provider_response
+    #          }}
+    #     end
+
+    #   {:error, changeset} ->
+    #     {:error, changeset}
+    # end
   end
 
   defp maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type) do
@@ -155,17 +198,21 @@ defmodule Edoc.Etaxcore.InvoiceService do
     |> Repo.insert(prefix: tenant)
   end
 
-  defp persist_provider_exchange(%Transaction{} = tx, tenant, request_payload, request_at, result) do
-    {response_payload, response_at} = format_provider_response(result)
-
+  defp persist_provider_exchange(
+         %Transaction{} = transaction,
+         tenant,
+         request_payload,
+         request_at,
+         normalized_provider_response
+       ) do
     attrs = %{
       provider_request: request_payload,
       provider_request_at: request_at,
-      provider_response: response_payload,
-      provider_response_at: response_at
+      provider_response: normalized_provider_response,
+      provider_response_at: DateTime.utc_now(:second)
     }
 
-    tx
+    transaction
     |> Transaction.changeset(attrs)
     |> Repo.update(prefix: tenant)
     |> case do
@@ -174,35 +221,62 @@ defmodule Edoc.Etaxcore.InvoiceService do
 
       {:error, changeset} ->
         Logger.error(
-          "Failed to persist provider exchange for transaction #{tx.id}: #{inspect(changeset.errors)}"
+          "Failed to persist provider exchange for transaction #{transaction.id}: #{inspect(changeset.errors)}"
         )
 
-        :error
+        {:error, changeset}
     end
   end
 
-  defp format_provider_response({:ok, response}) do
-    {%{"status" => "ok", "body" => response}, DateTime.utc_now(:second)}
+  defp normalize_provider_response({:ok, body}) do
+    %{
+      "status" => "ok",
+      "body" => body
+    }
   end
 
-  defp format_provider_response({:error, {:http_error, status, body}}) do
-    {%{"status" => "error", "type" => "http_error", "status_code" => status, "body" => body},
-     DateTime.utc_now(:second)}
+  defp normalize_provider_response({:error, {:http_error, status, body}}) do
+    %{
+      "status" => "error",
+      "type" => "http_error",
+      "status_code" => status,
+      "body" => body
+    }
   end
 
-  defp format_provider_response({:error, {:odoo_sequence_update_error, reason}}) do
-    {%{"status" => "error", "type" => "odoo_sequence_update_error", "reason" => format_reason(reason)},
-     DateTime.utc_now(:second)}
+  defp normalize_provider_response({:error, {:odoo_sequence_update_error, reason}}) do
+    %{
+      "status" => "error",
+      "type" => "odoo_sequence_update_error",
+      "reason" => format_reason(reason)
+    }
   end
 
-  defp format_provider_response({:error, {:client_exception, exception}}) do
-    {%{"status" => "error", "type" => "client_exception", "reason" => Exception.message(exception)},
-     DateTime.utc_now(:second)}
+  defp normalize_provider_response({:error, {:client_exception, exception}}) do
+    %{
+      "status" => "error",
+      "type" => "client_exception",
+      "reason" => Exception.message(exception)
+    }
   end
 
-  defp format_provider_response({:error, reason}) do
-    {%{"status" => "error", "type" => "transport_error", "reason" => format_reason(reason)},
-     DateTime.utc_now(:second)}
+  defp normalize_provider_response({:error, reason}) do
+    %{
+      "status" => "error",
+      "type" => "transport_error",
+      "reason" => format_reason(reason)
+    }
+  end
+
+  defp print_json(label, value) do
+    output =
+      case Jason.encode(value, pretty: true) do
+        {:ok, json} -> json
+        {:error, _reason} -> inspect(value, pretty: true, limit: :infinity)
+      end
+
+    IO.puts("#{label}:")
+    IO.puts(output)
   end
 
   defp format_reason(%_{__exception__: true} = exception), do: Exception.message(exception)
@@ -269,22 +343,17 @@ defmodule Edoc.Etaxcore.InvoiceService do
   defp valid_identifier?(value) when is_binary(value), do: String.trim(value) != ""
   defp valid_identifier?(_), do: false
 
-  defp log_payloads_as_json(payload, request_payload) do
-    Logger.debug("""
-    Odoo payload JSON:
-    #{to_pretty_json(payload)}
+  defp format_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
 
-    eTaxCore request payload JSON:
-    #{to_pretty_json(request_payload)}
-    """)
-  end
+  defp format_ip({a, b, c, d, e, f, g, h}),
+    do: :inet.ntoa({a, b, c, d, e, f, g, h}) |> to_string()
 
-  defp to_pretty_json(value) when is_map(value) do
-    case Jason.encode(value, pretty: true) do
-      {:ok, json} -> json
-      {:error, _reason} -> inspect(value, pretty: true, limit: :infinity)
+  defp format_ip(nil), do: nil
+
+  defp format_ip(other) do
+    case :inet.ntoa(other) do
+      {:error, _reason} -> inspect(other)
+      text -> to_string(text)
     end
   end
-
-  defp to_pretty_json(value), do: inspect(value, pretty: true, limit: :infinity)
 end

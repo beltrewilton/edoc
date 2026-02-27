@@ -8,15 +8,23 @@ defmodule EdocWeb.Plugs.PutTenantFromScope do
   """
   import Plug.Conn
   alias Edoc.TenantContext
+  @invalid_tenant_prefix "Not.Found.In.TenantContext"
 
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    case get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)]) do
-      tenant when is_binary(tenant) and tenant != "" -> TenantContext.put_tenant(tenant)
-      _ -> :ok
+    tenant = get_in(conn.assigns, [:current_scope, Access.key(:user), Access.key(:tenant)])
+
+    if valid_tenant?(tenant) do
+      TenantContext.put_tenant(tenant)
     end
 
     conn
   end
+
+  defp valid_tenant?(tenant) when is_binary(tenant) do
+    tenant != "" and not String.starts_with?(tenant, @invalid_tenant_prefix)
+  end
+
+  defp valid_tenant?(_), do: false
 end

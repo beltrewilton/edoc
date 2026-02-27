@@ -1,0 +1,54 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 43,
+      "encf": "E430000000001",
+      "fechaVencimientoSecuencia": "31-12-2025",
+      "tablaFormasPago": []
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "010101",
+      "provincia": "010000",
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "numeroFacturaInterna": "123456789016",
+      "numeroPedidoInterno": "123456789016",
+      "fechaEmision": "01-04-2020"
+    },
+    "totales": {
+      "montoExento": 700,
+      "impuestosAdicionales": [],
+      "montoTotal": 700
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "Peajes viaje semana I",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 7,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 100,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": 700
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:29"
+}

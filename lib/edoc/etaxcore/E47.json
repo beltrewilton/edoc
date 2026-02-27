@@ -1,0 +1,85 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 47,
+      "encf": "E470000000001",
+      "fechaVencimientoSecuencia": "31-12-2025",
+      "tablaFormasPago": [],
+      "numeroCuentaPago": "BB00058745214789635111111111",
+      "bancoPago": "BB0111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "emisor": {
+      "rncEmisor": "123456789",
+      "razonSocialEmisor": "DOCUMENTOS ELECTRONICOS DE 02",
+      "nombreComercial": "DOCUMENTOS ELECTRONICOS DE 02",
+      "direccionEmisor": "AVE. ISABEL AGUIAR NO. 269, ZONA INDUSTRIAL DE HERRERA",
+      "municipio": "010101",
+      "provincia": "010000",
+      "tablaTelefonoEmisor": [
+        "809-472-7676",
+        "809-491-1918"
+      ],
+      "correoEmisor": "DOCUMENTOSELECTRONICOSDE0612345678969789+9000000000000000000000000000001@123.COM",
+      "webSite": "www.facturaelectronica.com",
+      "numeroFacturaInterna": "123456789016",
+      "numeroPedidoInterno": "123456789016",
+      "fechaEmision": "01-04-2020"
+    },
+    "comprador": {
+      "identificadorExtranjero": "533445888",
+      "razonSocialComprador": "ALEJA FERMIN SANTOS"
+    },
+    "totales": {
+      "montoExento": 180000,
+      "impuestosAdicionales": [],
+      "montoTotal": 180000,
+      "totalISRRetencion": 48600
+    },
+    "otraMoneda": {
+      "tipoMoneda": "USD",
+      "tipoCambio": 60,
+      "montoExentoOtraMoneda": 3000,
+      "impuestosAdicionalesOtraMoneda": [],
+      "montoTotalOtraMoneda": 3000
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": 48600
+      },
+      "nombreItem": "LICENCIA WYI",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": 180000,
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "otraMonedaDetalle": {
+        "precioOtraMoneda": 3000,
+        "montoItemOtraMoneda": 3000
+      },
+      "montoItem": 180000
+    }
+  ],
+  "subtotales": [
+    {
+      "numeroSubTotal": 1,
+      "descripcionSubtotal": "N/A",
+      "orden": 1,
+      "subTotalExento": 180000,
+      "montoSubTotal": 180000,
+      "lineas": 1
+    }
+  ],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "28-12-2023 16:03:34"
+}

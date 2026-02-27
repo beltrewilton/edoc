@@ -235,133 +235,139 @@ defmodule EdocWeb.CompanyLive do
   @impl true
   def render(%{live_action: :index} = assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="max-w-5xl mx-auto px-4 py-6">
-        <div class="flex items-center justify-between mb-6">
-          <h1 class="text-2xl font-semibold">Companies</h1>
-          <.button navigate={~p"/companies/new"} variant="primary">New Company</.button>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-6xl space-y-5">
+        <div id="companies-new-loading" class="pointer-events-none fixed inset-x-0 top-5 z-50 hidden justify-center">
+          <div class="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-200">
+            <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+            Opening company form...
+          </div>
         </div>
 
+        <.header>
+          Companies
+          <:subtitle>Create companies, connect Odoo, and monitor automation setup progress.</:subtitle>
+          <:actions>
+            <.button
+              id="companies-new-button"
+              navigate={~p"/companies/new"}
+              phx-click={
+                JS.remove_class("hidden", to: "#companies-new-loading")
+                |> JS.add_class("pointer-events-none opacity-70", to: "#companies-new-button")
+              }
+            >
+              <.icon name="hero-plus" class="size-4" /> New Company
+            </.button>
+          </:actions>
+        </.header>
+
         <div id="companies" phx-update="stream" class="grid grid-cols-1 gap-4">
-          <div class="hidden only:block col-span-full text-center text-sm text-zinc-600">
-            No companies yet
+          <div class="hidden only:block rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-400">
+            No companies yet.
           </div>
 
-          <.card
+          <article
             :for={{id, company} <- @streams.companies}
             id={id}
-            class="bg-base-100 w-full shadow-xl"
+            class={[
+              ui(:card),
+              "p-5 transition duration-200 hover:shadow-md dark:hover:border-indigo-500/45"
+            ]}
           >
-            <:card_title class="text-base">{company.company_name}</:card_title>
-            <:card_body>
-              <div class="flex items-start gap-3">
-                <.avatar placeholder online={company.connected}>
-                  <div class="w-12 rounded-full bg-neutral text-neutral-content">
-                    <span class="text-lg">{company_initials(company)}</span>
+            <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start gap-3">
+                  <div class="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-sm font-semibold text-white shadow-[0_16px_28px_-18px_rgba(79,70,229,0.9)]">
+                    {company_initials(company)}
                   </div>
-                </.avatar>
-                <div class="flex-1">
-                  <p class="text-xs text-zinc-500">RNC: {company.rnc || "—"}</p>
+                  <div class="min-w-0">
+                    <h2 class="truncate text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+                      {company.company_name}
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">RNC: {company.rnc || "—"}</p>
 
-                  <div class="mt-2 flex flex-wrap gap-2">
-                    <span class={[
-                      "badge badge-sm",
-                      company.active && "badge-success",
-                      !company.active && "badge-ghost"
-                    ]}>
-                      Active
-                    </span>
-                    <span class={[
-                      "badge badge-sm",
-                      company.connected && "badge-success",
-                      !company.connected && "badge-ghost"
-                    ]}>
-                      Connected
-                    </span>
-                  </div>
-
-                  <div class="mt-3 text-xs space-y-1">
-                    <div class="truncate">
-                      <span class="font-medium">Odoo URL:</span> {company.odoo_url || "—"}
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <.status_pill tone={if(company.active, do: "success", else: "neutral")}>
+                        {if(company.active, do: "Active", else: "Inactive")}
+                      </.status_pill>
+                      <.status_pill tone={if(company.connected, do: "success", else: "warning")}>
+                        {if(company.connected, do: "Connected", else: "Pending connection")}
+                      </.status_pill>
                     </div>
-                    <div class="truncate">
-                      <span class="font-medium">Odoo User:</span> {company.odoo_user || "—"}
-                    </div>
-                  </div>
-                  <% prog = Map.get(@automation_progress, company.id, %{current: 0, status: :idle}) %>
-                  <div class="mt-4">
-                    <ul class="timeline overflow-x-auto text-xs">
-                      <%= for {label, idx} <- Enum.with_index(automation_step_labels(), 1) do %>
-                        <% completed? = prog.current >= idx %>
-                        <li>
-                          <hr :if={idx > 1} class={[completed? && "bg-primary"]} />
-                          <div
-                            :if={rem(idx, 2) == 1}
-                            class="timeline-start timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words"
-                          >
-                            {label}
-                          </div>
-                          <div class="timeline-middle">
-                            <.icon
-                              name="hero-check-circle"
-                              class={[
-                                "h-4 w-4 sm:h-5 sm:w-5",
-                                completed? && "text-primary",
-                                !completed? && "text-base-content/40"
-                              ]}
-                            />
-                          </div>
-                          <div
-                            :if={rem(idx, 2) == 0}
-                            class="timeline-end timeline-box text-xs p-2 max-w-[12rem] sm:max-w-[16rem] break-words"
-                          >
-                            {label}
-                          </div>
-                          <hr class={[completed? && "bg-primary"]} />
-                        </li>
-                      <% end %>
-                    </ul>
-                    <%= case prog.status do %>
-                      <% :exchanging -> %>
-                        <p class="mt-2 text-xs text-zinc-500">
-                          Setting up Odoo: step {prog.current} of {length(automation_step_labels())}...
-                        </p>
-                      <% {:error, reason} -> %>
-                        <p class="mt-2 text-xs text-red-600">Error: {reason}</p>
-                      <% :success -> %>
-                        <p class="mt-2 text-xs text-emerald-600">All steps completed.</p>
-                      <% _ -> %>
-                        <p class="mt-2 text-xs text-zinc-500">Not started.</p>
-                    <% end %>
                   </div>
                 </div>
+
+                <div class="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 dark:text-slate-300">
+                  <p class="truncate"><span class="font-semibold">Odoo URL:</span> {company.odoo_url || "—"}</p>
+                  <p class="truncate">
+                    <span class="font-semibold">Odoo User:</span> {company.odoo_user || "—"}
+                  </p>
+                </div>
+
+                <% prog = Map.get(@automation_progress, company.id, %{current: 0, status: :idle}) %>
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/40">
+                  <ol class="space-y-2">
+                    <%= for {label, idx} <- Enum.with_index(automation_step_labels(), 1) do %>
+                      <% completed? = prog.current >= idx %>
+                      <li class="flex items-start gap-2 text-xs">
+                        <span class={[
+                          "mt-0.5 inline-flex size-5 items-center justify-center rounded-full border",
+                          completed? && "border-emerald-200 bg-emerald-50 text-emerald-600",
+                          completed? && "dark:border-emerald-500/40 dark:bg-emerald-500/15 dark:text-emerald-300",
+                          !completed? && "border-slate-200 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500"
+                        ]}>
+                          <.icon name="hero-check" class="size-3.5" />
+                        </span>
+                        <span class={[
+                          completed? && "text-slate-700 dark:text-slate-200",
+                          !completed? && "text-slate-500 dark:text-slate-400"
+                        ]}>
+                          {label}
+                        </span>
+                      </li>
+                    <% end %>
+                  </ol>
+
+                  <%= case prog.status do %>
+                    <% :exchanging -> %>
+                      <p class="mt-3 text-xs font-medium text-slate-600 dark:text-slate-300">
+                        Setting up Odoo: step {prog.current} of {length(automation_step_labels())}.
+                      </p>
+                    <% {:error, reason} -> %>
+                      <p class="mt-3 text-xs font-medium text-rose-600 dark:text-rose-300">Error: {reason}</p>
+                    <% :success -> %>
+                      <p class="mt-3 text-xs font-medium text-emerald-600 dark:text-emerald-300">
+                        All setup steps completed.
+                      </p>
+                    <% _ -> %>
+                      <p class="mt-3 text-xs font-medium text-slate-500 dark:text-slate-400">Not started.</p>
+                  <% end %>
+                </div>
               </div>
-            </:card_body>
-            <:card_actions class="justify-end mt-2">
-              <.button
-                class="btn btn-ghost btn-sm gap-2 text-xs font-semibold uppercase tracking-wide"
-                navigate={~p"/companies/#{company.id}/transactions"}
-              >
-                <.icon name="hero-receipt-percent" class="size-4" /> Watch Transactions
-              </.button>
-              <%= unless company.connected or match?(%{status: :success}, @automation_progress[company.id] || %{}) do %>
-                <.button
-                  color="primary"
-                  phx-click="connect"
-                  phx-value-id={company.id}
-                  phx-disable-with="Connecting..."
-                  disabled={
-                    case @automation_progress[company.id] do
-                      %{status: :exchanging} -> true
-                      _ -> false
-                    end
-                  }
-                >
-                  Connect
+
+              <div class="flex flex-row gap-2 md:flex-col md:items-end">
+                <.button variant="secondary" navigate={~p"/companies/#{company.id}/transactions"}>
+                  <.icon name="hero-receipt-percent" class="size-4" />
+                  Transactions
                 </.button>
-              <% end %>
-            </:card_actions>
-          </.card>
+                <%= unless company.connected or match?(%{status: :success}, @automation_progress[company.id] || %{}) do %>
+                  <.button
+                    phx-click="connect"
+                    phx-value-id={company.id}
+                    phx-disable-with="Connecting..."
+                    disabled={
+                      case @automation_progress[company.id] do
+                        %{status: :exchanging} -> true
+                        _ -> false
+                      end
+                    }
+                  >
+                    Connect
+                  </.button>
+                <% end %>
+              </div>
+            </div>
+          </article>
         </div>
       </div>
     </Layouts.app>
@@ -382,45 +388,67 @@ defmodule EdocWeb.CompanyLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="max-w-2xl mx-auto px-4 py-6">
-        <h1 class="text-2xl font-semibold mb-6">Create Company</h1>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
+      <div class="mx-auto w-full max-w-3xl space-y-5">
+        <.header>
+          Create Company
+          <:subtitle>Add company details and Odoo credentials to initialize automations.</:subtitle>
+        </.header>
 
-        <.form for={@form} id="company-form" phx-change="validate" phx-submit="save" class="space-y-4">
-          <.input
-            field={@form[:company_name]}
-            type="text"
-            label="Company Name"
-            placeholder="Acme Corp"
-          />
-          <.input field={@form[:rnc]} type="text" label="RNC" placeholder="RNC/Tax ID" />
+        <.surface class="border-indigo-100/70 dark:border-indigo-500/20">
+          <.form
+            for={@form}
+            id="company-form"
+            phx-change="validate"
+            phx-submit="save"
+            class="relative space-y-4 phx-submit-loading:pointer-events-none"
+          >
+            <div class="hidden items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700 dark:border-indigo-500/40 dark:bg-indigo-500/15 dark:text-indigo-200 phx-submit-loading:flex">
+              <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+              Creating company, please wait...
+            </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <.input
-              field={@form[:odoo_url]}
+              field={@form[:company_name]}
               type="text"
-              label="Odoo URL"
-              placeholder="https://odoo.example.com"
+              label="Company Name"
+              placeholder="Acme Corp"
             />
-            <.input field={@form[:odoo_db]} type="text" label="Odoo DB" placeholder="my_db" />
-            <.input
-              field={@form[:odoo_user]}
-              type="text"
-              label="Odoo User"
-              placeholder="user@example.com"
-            />
-            <.input field={@form[:odoo_apikey]} type="password" label="Odoo API Key" />
-          </div>
+            <.input field={@form[:rnc]} type="text" label="RNC" placeholder="RNC/Tax ID" />
 
-          <.input field={@form[:access_token]} type="password" label="Access Token" />
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <.input
+                field={@form[:odoo_url]}
+                type="text"
+                label="Odoo URL"
+                placeholder="https://odoo.example.com"
+              />
+              <.input field={@form[:odoo_db]} type="text" label="Odoo DB" placeholder="my_db" />
+              <.input
+                field={@form[:odoo_user]}
+                type="text"
+                label="Odoo User"
+                placeholder="user@example.com"
+              />
+              <.input field={@form[:odoo_apikey]} type="password" label="Odoo API Key" />
+            </div>
 
-          <div class="flex items-center gap-3 pt-2">
-            <.button type="submit">Save</.button>
-            <.link navigate={~p"/companies"} class="text-sm text-zinc-600 hover:text-zinc-900">
-              Cancel
-            </.link>
-          </div>
-        </.form>
+            <.input field={@form[:access_token]} type="password" label="Access Token" />
+
+            <div class="flex items-center gap-3 pt-2">
+              <.button type="submit" phx-disable-with="Creating company...">
+                <span class="phx-submit-loading:hidden">Save company</span>
+                <span class="hidden items-center gap-2 phx-submit-loading:inline-flex">
+                  <.icon name="hero-arrow-path" class="size-4 motion-safe:animate-spin" />
+                  Creating...
+                </span>
+              </.button>
+              <.button navigate={~p"/companies"} variant="ghost">
+                Cancel
+              </.button>
+            </div>
+          </.form>
+        </.surface>
       </div>
     </Layouts.app>
     """

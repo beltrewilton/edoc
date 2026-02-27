@@ -5,7 +5,14 @@ defmodule EdocWeb.GoogleLiveHelper do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, status: :idle, greeting: nil, messages_pair: [], google_account: nil)}
+    {:ok,
+     assign(socket,
+       status: :idle,
+       greeting: nil,
+       messages_pair: [],
+       google_account: nil,
+       page_title: "Google Helper"
+     )}
   end
 
   @impl true
@@ -105,7 +112,7 @@ defmodule EdocWeb.GoogleLiveHelper do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
+    <Layouts.app flash={@flash} current_scope={@current_scope} page_title={@page_title}>
       <div :if={@google_account} class="flex w-full col-2 gap-1 pl-1 pb-4">
         <.avatar online>
           <div class="w-12 rounded-full">
