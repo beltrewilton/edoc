@@ -820,6 +820,45 @@ defmodule Edoc.OdooAutomationClient do
   end
 
   @doc """
+  Retrieve partner (res.partner) data by ID.
+  """
+  @spec get_invoice_partner_data(t(), integer(), integer(), list(String.t()) | nil) :: map() | nil
+  def get_invoice_partner_data(
+        %__MODULE__{} = client,
+        uid,
+        partner_id,
+        partner_fields \\ nil
+      ) do
+    partner_fields =
+      partner_fields ||
+        [
+          "id",
+          "name",
+          "company_name",
+          "display_name",
+          "vat",
+          "phone",
+          "city",
+          "contact_address_complete"
+        ]
+
+    partners =
+      execute_kw!(
+        client,
+        uid,
+        "res.partner",
+        "read",
+        [[partner_id]],
+        %{fields: partner_fields}
+      )
+
+    case partners do
+      [] -> nil
+      [partner | _] -> partner
+    end
+  end
+
+  @doc """
   Append a string to the invoice 'name' and 'payment_reference' fields.
   """
   @spec add_invoice_sequence(

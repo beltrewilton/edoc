@@ -60,12 +60,16 @@ defmodule EdocWeb.DaisyUIComponents.Modal do
     assigns =
       assigns
       |> assign(:open, assigns[:show] || assigns[:open])
+      |> assign(:mounted_js, mounted_modal_js(assigns[:show] || assigns[:open], assigns.id))
 
     ~H"""
     <dialog
       id={@id}
-      class={["modal", @class]}
-      phx-mounted={@open && show_modal(@id)}
+      class={[
+        "modal fixed inset-0 z-50 m-0 h-screen w-screen max-h-none max-w-none overflow-y-auto bg-slate-950/45 p-4",
+        @class
+      ]}
+      phx-mounted={@mounted_js}
       phx-remove={hide_modal(@id)}
       data-cancel={JS.exec(@on_cancel, "phx-remove")}
       {@rest}
@@ -105,7 +109,7 @@ defmodule EdocWeb.DaisyUIComponents.Modal do
     ~H"""
     <.focus_wrap
       id={"#{@modal_id}-container"}
-      class={["modal-box", @class]}
+      class={["modal-box relative my-auto", @class]}
       phx-window-keydown={JS.exec("data-cancel", to: "##{@modal_id}")}
       phx-key="escape"
       phx-click-away={@close_on_click_away && JS.exec("data-cancel", to: "##{@modal_id}")}
@@ -155,7 +159,7 @@ defmodule EdocWeb.DaisyUIComponents.Modal do
   """
   def show_modal(js \\ %JS{}, id) when is_binary(id) do
     js
-    |> JS.set_attribute({"open", "true"}, to: "##{id}")
+    |> JS.dispatch("edoc:modal-open", to: "##{id}")
     |> JS.focus_first(to: "##{id}-content")
   end
 
@@ -174,7 +178,17 @@ defmodule EdocWeb.DaisyUIComponents.Modal do
   """
   def hide_modal(js \\ %JS{}, id) do
     js
-    |> JS.remove_attribute("open", to: "##{id}")
+    |> JS.dispatch("edoc:modal-close", to: "##{id}")
     |> JS.pop_focus()
+  end
+
+  defp mounted_modal_js(open, id) when is_binary(id) do
+    js = JS.ignore_attributes("open")
+
+    if open do
+      show_modal(js, id)
+    else
+      js
+    end
   end
 end

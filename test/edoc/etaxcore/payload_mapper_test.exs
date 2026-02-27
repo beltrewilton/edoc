@@ -72,7 +72,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              %{"formaPago" => 1, "montoPago" => 3009.0}
            ]
 
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "123456789"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 123456789
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "EDOC SRL"
     assert mapped["encabezado"]["emisor"]["numeroFacturaInterna"] == "INV/2026/02/0008"
 
@@ -355,7 +355,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "invoice_date" => "2026-02-24",
       "invoice_date_due" => "2026-03-10",
       "invoice_partner_display_name" => "Proveedor Local",
-      "rnc_comprador" => "131313131",
+      "rnc_comprador" => "131-31313-1",
       "partner_id" => 999,
       "payment_reference" => "BILL/2026/0001",
       "total_isr_retencion" => 1000.0,
@@ -397,9 +397,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "131313131"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131313131
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == "123456789"
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123456789
 
     assert [
              %{
@@ -424,7 +424,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "invoice_date" => "2026-02-24",
       "invoice_date_due" => "2026-03-10",
       "invoice_partner_display_name" => "Proveedor Gastos Menores",
-      "rnc_comprador" => "101010101",
+      "rnc_comprador" => "101-01010-1 ",
       "payment_reference" => "BILL/2026/0002",
       "invoice_items" => [
         %{
@@ -447,9 +447,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Gastos Menores"
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "101010101"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 101010101
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == "123456789"
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123456789
 
     assert mapped["encabezado"]["totales"] == %{
              "montoExento" => 700.0,
@@ -752,5 +752,75 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "lineas" => 1
              }
            ]
+  end
+
+  test "prefers explicit comprador enrichment fields when mapping E31" do
+    payload = %{
+      "_id" => 31_999,
+      "amount_tax" => 180.0,
+      "amount_total" => 1180.0,
+      "amount_untaxed" => 1000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "payment_reference" => "INV/2026/0999",
+      "x_studio_e_doc_inv" => "E31",
+      "rncComprador" => "130-98765-4",
+      "razonSocialComprador" => "Cliente Enriquecido SRL",
+      "direccionComprador" => "Distrito Nacional",
+      "tablaTelefonoComprador" => ["809-555-9999"],
+      "invoice_items" => [
+        %{
+          "name" => "Item",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000009999")
+
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 130987654
+    assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "Cliente Enriquecido SRL"
+    assert mapped["encabezado"]["comprador"]["direccionComprador"] == "Distrito Nacional"
+    assert mapped["encabezado"]["comprador"]["tablaTelefonoComprador"] == ["809-555-9999"]
+  end
+
+  test "prefers explicit emisor enrichment fields when mapping E47" do
+    payload = %{
+      "_id" => 47_999,
+      "amount_tax" => 0.0,
+      "amount_total" => 12_000.0,
+      "amount_untaxed" => 12_000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "identificador_extranjero" => "FOREIGN-01",
+      "invoice_partner_display_name" => "Comprador Extranjero",
+      "x_studio_e_doc_bill" => "E47",
+      "rncEmisor" => "131-31313-1 ",
+      "razonSocialEmisor" => "Proveedor E47 SRL",
+      "nombreComercial" => "Proveedor E47",
+      "direccionEmisor" => "Santiago, Calle 1",
+      "tablaTelefonoEmisor" => ["809-444-1212"],
+      "invoice_items" => [
+        %{
+          "name" => "Servicio",
+          "price_subtotal" => 12_000.0,
+          "price_unit" => 12_000.0,
+          "quantity" => 1.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC Company", rnc: "999999999"}
+    mapped = PayloadMapper.map_e47(payload, company, e_doc: "E470000009999")
+
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131313131
+    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor E47 SRL"
+    assert mapped["encabezado"]["emisor"]["nombreComercial"] == "Proveedor E47"
+    assert mapped["encabezado"]["emisor"]["direccionEmisor"] == "Santiago, Calle 1"
+    assert mapped["encabezado"]["emisor"]["tablaTelefonoEmisor"] == ["809-444-1212"]
   end
 end

@@ -71,3 +71,8 @@ summary {
 summary::-webkit-details-marker {
   display: none;
 }
+
+dialog.modal[open] {
+  display: grid;
+  place-items: center;
+}

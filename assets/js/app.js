@@ -23,13 +23,152 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/edoc"
+import jsonFormatHighlight from "../vendor/json-format-highlight"
 import topbar from "../vendor/topbar"
 
+document.addEventListener("edoc:modal-open", (event) => {
+  const dialog = event.target
+
+  if (!(dialog instanceof HTMLDialogElement)) {
+    return
+  }
+
+  if (typeof dialog.showModal === "function") {
+    if (!dialog.open) {
+      dialog.showModal()
+    }
+
+    return
+  }
+
+  dialog.setAttribute("open", "true")
+})
+
+document.addEventListener("edoc:modal-close", (event) => {
+  const dialog = event.target
+
+  if (!(dialog instanceof HTMLDialogElement)) {
+    return
+  }
+
+  if (typeof dialog.close === "function") {
+    if (dialog.open) {
+      dialog.close()
+    }
+
+    return
+  }
+
+  dialog.removeAttribute("open")
+})
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+const RawJsonViewer = {
+  mounted() {
+    this.copyButton = this.el.querySelector("[data-role='copy-json']")
+    this.copyFeedback = this.el.querySelector("[data-role='copy-feedback']")
+    this.jsonTarget = this.el.querySelector("[data-role='json-highlight']")
+    this.copyTimeout = null
+    this.copyPayload = ""
+    this.copyListener = () => this.copyRawJson()
+
+    if (this.copyButton) {
+      this.copyButton.addEventListener("click", this.copyListener)
+    }
+
+    this.renderJson()
+  },
+  updated() {
+    this.renderJson()
+  },
+  destroyed() {
+    if (this.copyButton) {
+      this.copyButton.removeEventListener("click", this.copyListener)
+    }
+
+    if (this.copyTimeout) {
+      clearTimeout(this.copyTimeout)
+    }
+  },
+  renderJson() {
+    const rawJson = this.el.dataset.json || ""
+    let highlightedJson
+
+    try {
+      const parsedJson = JSON.parse(rawJson)
+
+      highlightedJson = jsonFormatHighlight(parsedJson, {
+        keyColor: "#93c5fd",
+        numberColor: "#facc15",
+        stringColor: "#86efac",
+        trueColor: "#5eead4",
+        falseColor: "#fda4af",
+        nullColor: "#f9a8d4",
+      })
+      this.copyPayload = JSON.stringify(parsedJson, null, 2)
+    } catch (_error) {
+      const fallbackJson = rawJson.trim() === "" ? "No payload available." : rawJson
+
+      highlightedJson = this.escapeHtml(fallbackJson)
+      this.copyPayload = fallbackJson
+    }
+
+    if (this.jsonTarget) {
+      this.jsonTarget.innerHTML = highlightedJson
+    }
+  },
+  async copyRawJson() {
+    if (!this.copyPayload) {
+      return
+    }
+
+    if (!navigator.clipboard) {
+      this.showCopyFeedback("Clipboard unavailable")
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(this.copyPayload)
+      this.showCopyFeedback("Copied")
+    } catch (_error) {
+      this.showCopyFeedback("Copy failed")
+    }
+  },
+  showCopyFeedback(message) {
+    if (!this.copyFeedback) {
+      return
+    }
+
+    this.copyFeedback.textContent = message
+    this.copyFeedback.classList.remove("opacity-0")
+    this.copyFeedback.classList.add("opacity-100")
+
+    if (this.copyTimeout) {
+      clearTimeout(this.copyTimeout)
+    }
+
+    this.copyTimeout = setTimeout(() => {
+      this.copyFeedback.classList.remove("opacity-100")
+      this.copyFeedback.classList.add("opacity-0")
+    }, 1400)
+  },
+  escapeHtml(value) {
+    return value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+  },
+}
+
+const hooks = {
+  ...colocatedHooks,
+  RawJsonViewer,
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks,
 })
 
 // Show progress bar on live navigation and form submits
@@ -80,4 +219,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-

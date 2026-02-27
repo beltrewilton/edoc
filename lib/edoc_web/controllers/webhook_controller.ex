@@ -13,6 +13,8 @@ defmodule EdocWeb.WebhookController do
 
   @body_opts [length: 10_000_000, read_timeout: 15_000]
   @pubsub_server Edoc.PubSub
+  @partner_as_comprador_tipos [31, 32, 33, 34, 44, 45, 46]
+  @partner_as_emisor_tipos [41, 43, 47]
 
   def create(conn, %{"user_id" => user_id, "company_id" => company_id}) do
     with {:ok, payload} <- decode_body(conn),
@@ -104,7 +106,11 @@ defmodule EdocWeb.WebhookController do
 
       invoice_id ->
         with {:ok, client, uid} <- build_odoo_context(company),
-             enriched_payload <- enrich_with_invoice_items(client, uid, invoice_id, payload) do
+             invoice_data <- Odoo.get_invoice_data(client, uid, invoice_id),
+             enriched_payload <-
+               payload
+               |> enrich_with_invoice_items(invoice_data)
+               |> enrich_with_invoice_partner(client, uid, invoice_data) do
           {:ok, enriched_payload, {client, uid}}
         end
     end
@@ -127,10 +133,9 @@ defmodule EdocWeb.WebhookController do
       {:error, exception}
   end
 
-  defp enrich_with_invoice_items(%Odoo{} = client, uid, invoice_id, payload) do
+  defp enrich_with_invoice_items(payload, invoice_data) do
     invoice_items =
-      client
-      |> Odoo.get_invoice_data(uid, invoice_id)
+      invoice_data
       |> case do
         nil -> []
         result -> Map.get(result, :lines, [])
@@ -139,6 +144,188 @@ defmodule EdocWeb.WebhookController do
 
     Map.put(payload, "invoice_items", invoice_items)
   end
+
+  defp enrich_with_invoice_partner(payload, %Odoo{} = client, uid, invoice_data) do
+    with partner_id when is_integer(partner_id) <- invoice_partner_id(invoice_data),
+         role when role in [:comprador, :emisor] <- partner_mapping_role(payload),
+         %{} = partner <- Odoo.get_invoice_partner_data(client, uid, partner_id) do
+      payload
+      |> Map.merge(partner_payload(role, partner))
+    else
+      _ -> payload
+    end
+  end
+
+  defp invoice_partner_id(%{invoice: %{} = invoice}) do
+    invoice
+    |> Map.get("partner_id")
+    |> normalize_odoo_reference_id()
+  end
+
+  defp invoice_partner_id(_), do: nil
+
+  defp normalize_odoo_reference_id([id | _rest]) when is_integer(id), do: id
+  defp normalize_odoo_reference_id(id) when is_integer(id), do: id
+
+  defp normalize_odoo_reference_id(value) when is_binary(value) do
+    case Integer.parse(String.trim(value)) do
+      {id, ""} -> id
+      _ -> nil
+    end
+  end
+
+  defp normalize_odoo_reference_id(_), do: nil
+
+  defp partner_mapping_role(payload) do
+    case resolve_tipo_ecf(payload) do
+      tipo when tipo in @partner_as_comprador_tipos -> :comprador
+      tipo when tipo in @partner_as_emisor_tipos -> :emisor
+      _ -> nil
+    end
+  end
+
+  defp resolve_tipo_ecf(payload) do
+    ["x_studio_e_doc_bill", "x_studio_e_doc_inv", "x_studio_e_doc"]
+    |> Enum.find_value(fn key ->
+      payload
+      |> payload_value(key)
+      |> parse_tipo_ecf()
+    end)
+  end
+
+  defp parse_tipo_ecf(value) when is_binary(value) do
+    case Regex.run(~r/^E?(\d{2})/, String.trim(value)) do
+      [_, digits] -> String.to_integer(digits)
+      _ -> nil
+    end
+  end
+
+  defp parse_tipo_ecf(_), do: nil
+
+  defp partner_payload(role, partner) do
+    vat = partner_value(partner, "vat")
+    name = partner_name(partner)
+    address = partner_address(partner)
+    phones = partner_phone_list(partner)
+
+    base_map =
+      case role do
+        :comprador ->
+          %{}
+          |> put_if_present("rncComprador", vat)
+          |> put_if_present("razonSocialComprador", name)
+          |> put_if_present("direccionComprador", address)
+          |> put_if_present("direccion_comprador", address)
+          |> put_if_present("partner_vat", vat)
+          |> put_if_present("partner_address", address)
+          |> put_if_present("invoice_partner_display_name", name)
+
+        :emisor ->
+          %{}
+          |> put_if_present("rncEmisor", vat)
+          |> put_if_present("razonSocialEmisor", name)
+          |> put_if_present("nombreComercial", name)
+          |> put_if_present("direccionEmisor", address)
+
+        _ ->
+          %{}
+      end
+
+    case {role, phones} do
+      {_, []} ->
+        base_map
+
+      {:comprador, _} ->
+        Map.put(base_map, "tablaTelefonoComprador", phones)
+
+      {:emisor, _} ->
+        Map.put(base_map, "tablaTelefonoEmisor", phones)
+
+      _ ->
+        base_map
+    end
+  end
+
+  defp partner_name(partner) do
+    ["name", "company_name", "display_name"]
+    |> Enum.find_value(&partner_value(partner, &1))
+  end
+
+  defp partner_address(partner) do
+    city = normalize_partner_string(Map.get(partner, "city"))
+
+    contact_address_complete =
+      normalize_partner_string(Map.get(partner, "contact_address_complete"))
+
+    cond do
+      is_nil(city) and is_nil(contact_address_complete) ->
+        nil
+
+      is_nil(city) ->
+        contact_address_complete
+
+      is_nil(contact_address_complete) ->
+        city
+
+      String.contains?(
+        String.downcase(contact_address_complete),
+        String.downcase(city)
+      ) ->
+        contact_address_complete
+
+      true ->
+        city <> ", " <> contact_address_complete
+    end
+  end
+
+  defp partner_phone_list(partner) do
+    partner
+    |> partner_value("phone")
+    |> case do
+      nil ->
+        []
+
+      phone when is_binary(phone) ->
+        phone
+        |> String.split([",", ";"], trim: true)
+        |> Enum.map(&String.trim/1)
+        |> Enum.reject(&(&1 == ""))
+        |> Enum.uniq()
+
+      _ ->
+        []
+    end
+  end
+
+  defp partner_value(partner, field) do
+    partner
+    |> Map.get(field)
+    |> case do
+      nil -> nil
+      false -> nil
+      value when is_binary(value) -> String.trim(value)
+      value when is_integer(value) or is_float(value) -> to_string(value)
+      value -> value
+    end
+  end
+
+  defp normalize_partner_string(nil), do: nil
+  defp normalize_partner_string(false), do: nil
+
+  defp normalize_partner_string(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_partner_string(value) when is_integer(value) or is_float(value),
+    do: to_string(value)
+
+  defp normalize_partner_string(_), do: nil
+
+  defp put_if_present(map, _key, value) when value in [nil, "", []], do: map
+  defp put_if_present(map, key, value), do: Map.put(map, key, value)
 
   defp payload_invoice_id(payload) do
     payload

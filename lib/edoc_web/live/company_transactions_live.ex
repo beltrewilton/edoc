@@ -26,6 +26,8 @@ defmodule EdocWeb.CompanyTransactionsLive do
           socket
           |> assign(:company, company)
           |> assign(:page_title, "Transactions · #{company.company_name}")
+          |> assign(:raw_json_payload, nil)
+          |> assign(:raw_json_transaction_id, nil)
           |> stream(:transactions, transactions, reset: true)
           |> maybe_subscribe(scope, company)
 
@@ -49,6 +51,22 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   @impl true
   def handle_info(_message, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("open_raw_json", %{"payload" => payload} = params, socket) do
+    {:noreply,
+     socket
+     |> assign(:raw_json_payload, payload)
+     |> assign(:raw_json_transaction_id, Map.get(params, "transaction_id"))}
+  end
+
+  @impl true
+  def handle_event("close_raw_json", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:raw_json_payload, nil)
+     |> assign(:raw_json_transaction_id, nil)}
+  end
 
   @impl true
   def render(assigns) do
@@ -142,7 +160,10 @@ defmodule EdocWeb.CompanyTransactionsLive do
               </div>
 
               <div id="transactions" phx-update="stream" class="divide-y divide-slate-100 dark:divide-slate-800">
-                <div class="hidden only:flex flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+                <div
+                  id="transactions-empty-state"
+                  class="hidden only:flex flex-col items-center justify-center gap-2 px-6 py-16 text-center text-sm text-slate-500 dark:text-slate-400"
+                >
                   <.icon name="hero-receipt-percent" class="size-8 text-slate-400 dark:text-slate-500" />
                   <p>No transactions yet. Connect your automations to start streaming activity.</p>
                 </div>
@@ -173,19 +194,24 @@ defmodule EdocWeb.CompanyTransactionsLive do
                   </div>
 
                   <div class="text-right">
-                    <details class="group inline-block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                      <summary class="flex cursor-pointer items-center justify-end gap-1 font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        <.icon
-                          name="hero-code-bracket-square"
-                          class="size-4 transition group-open:rotate-90"
-                        />
-                        Raw JSON
-                      </summary>
-                      <pre
-                        phx-no-curly-interpolation
-                        class="mt-2 max-h-52 overflow-x-auto whitespace-pre-wrap rounded-lg bg-slate-900 p-3 text-left font-mono text-[0.7rem] leading-relaxed text-slate-100"
-                      ><%= transaction_payload(transaction) %></pre>
-                    </details>
+                    <button
+                      id={"raw-json-btn-#{transaction.id}"}
+                      type="button"
+                      aria-label={"Open raw JSON for transaction #{transaction.id}"}
+                      phx-click={
+                        JS.push("open_raw_json",
+                          value: %{
+                            payload: transaction_payload(transaction),
+                            transaction_id: transaction.id
+                          }
+                        )
+                        |> show_modal("transaction-raw-json-modal")
+                      }
+                      class="inline-flex items-center justify-end gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800"
+                    >
+                      <.icon name="hero-code-bracket-square" class="size-4" />
+                      Raw JSON
+                    </button>
                   </div>
                 </div>
               </div>
@@ -193,6 +219,73 @@ defmodule EdocWeb.CompanyTransactionsLive do
           </div>
         </.surface>
       </div>
+
+      <.modal
+        id="transaction-raw-json-modal"
+        closeable={false}
+        on_cancel={hide_modal("transaction-raw-json-modal") |> JS.push("close_raw_json")}
+      >
+        <:modal_box class="w-[96vw] max-w-6xl p-0" content_class="h-[82vh]">
+          <section id="transaction-raw-json-viewer" class="flex h-full flex-col">
+            <header class="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+              <div>
+                <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  Raw JSON payload
+                </h3>
+                <p class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
+                  <%= if @raw_json_transaction_id do %>
+                    Transaction ID: {@raw_json_transaction_id}
+                  <% else %>
+                    Select a transaction to inspect its payload.
+                  <% end %>
+                </p>
+              </div>
+
+              <div class="ml-auto flex items-center gap-2">
+                <button
+                  id="close-raw-json"
+                  type="button"
+                  aria-label="Close raw JSON modal"
+                  phx-click={hide_modal("transaction-raw-json-modal") |> JS.push("close_raw_json")}
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-700"
+                >
+                  <.icon name="hero-x-mark" class="size-4" />
+                </button>
+              </div>
+            </header>
+
+            <div
+              id="transaction-raw-json-client"
+              phx-hook="RawJsonViewer"
+              phx-update="ignore"
+              data-json={@raw_json_payload || ""}
+              class="relative flex-1 overflow-auto bg-slate-950 px-5 py-5"
+            >
+              <button
+                id="copy-raw-json"
+                type="button"
+                aria-label="Copy raw JSON"
+                data-role="copy-json"
+                class="absolute right-5 top-5 inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-600/80 bg-slate-900/90 text-slate-200 backdrop-blur transition hover:border-slate-500 hover:bg-slate-800"
+              >
+                <.icon name="hero-clipboard-document" class="size-4" />
+              </button>
+
+              <p
+                data-role="copy-feedback"
+                class="pointer-events-none absolute right-16 top-6 rounded-full border border-emerald-300/40 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200 opacity-0 transition"
+              >
+                Copied
+              </p>
+
+              <pre
+                phx-no-curly-interpolation
+                class="min-h-full whitespace-pre-wrap rounded-xl border border-slate-800 bg-slate-950 p-5 font-mono text-xs leading-relaxed text-slate-100"
+              ><code data-role="json-highlight"></code></pre>
+            </div>
+          </section>
+        </:modal_box>
+      </.modal>
     </Layouts.app>
     """
   end

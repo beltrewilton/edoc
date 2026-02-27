@@ -376,13 +376,33 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     provincia = Keyword.get(opts, :provincia, "010000")
 
     %{
-      "rncEmisor" => string_or_empty(company_field(company, :rnc)),
-      "razonSocialEmisor" => string_or_empty(company_field(company, :company_name)),
-      "nombreComercial" => string_or_empty(company_field(company, :company_name)),
-      "direccionEmisor" => string_or_empty(company_address(company)),
+      "rncEmisor" =>
+        rnc_or_empty(
+          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
+            company_field(company, :rnc)
+        ),
+      "razonSocialEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
+            company_field(company, :company_name)
+        ),
+      "nombreComercial" =>
+        string_or_empty(
+          value_from_keys(payload, [
+            "nombreComercial",
+            "nombre_comercial",
+            "razonSocialEmisor",
+            "razon_social_emisor"
+          ]) || company_field(company, :company_name)
+        ),
+      "direccionEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
+            company_address(company)
+        ),
       "municipio" => municipio,
       "provincia" => provincia,
-      "tablaTelefonoEmisor" => company_phone_list(company),
+      "tablaTelefonoEmisor" => emisor_phone_list(payload, company_phone_list(company)),
       "correoEmisor" => string_or_empty(company_email(company)),
       "webSite" => string_or_empty(company_website(company)),
       "codigoVendedor" => string_or_empty(company_field(company, :codigo_vendedor)),
@@ -399,10 +419,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp build_comprador(payload) do
     %{
-      "rncComprador" => string_or_empty(customer_tax_id(payload)),
+      "rncComprador" => rnc_or_empty(customer_tax_id(payload)),
       "razonSocialComprador" => string_or_empty(customer_name(payload)),
       "contactoComprador" =>
         string_or_empty(payload_value(payload, "contacto_comprador") || customer_name(payload)),
+      "tablaTelefonoComprador" => buyer_phone_list(payload),
       "correoComprador" =>
         string_or_empty(
           payload_value(payload, "partner_email") ||
@@ -410,7 +431,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         ),
       "direccionComprador" =>
         string_or_empty(
-          payload_value(payload, "partner_address") ||
+          payload_value(payload, "direccionComprador") ||
+            payload_value(payload, "partner_address") ||
             payload_value(payload, "direccion_comprador")
         ),
       "municipioComprador" => string_or_empty(payload_value(payload, "municipio_comprador")),
@@ -494,12 +516,24 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     comprador = build_comprador_e41(payload)
 
     %{
-      "rncEmisor" => string_or_empty(Map.get(comprador, "rncComprador")),
-      "razonSocialEmisor" => string_or_empty(Map.get(comprador, "razonSocialComprador")),
-      "direccionEmisor" => string_or_empty(Map.get(comprador, "direccionComprador")),
+      "rncEmisor" =>
+        rnc_or_empty(
+          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
+            Map.get(comprador, "rncComprador")
+        ),
+      "razonSocialEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
+            Map.get(comprador, "razonSocialComprador")
+        ),
+      "direccionEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
+            Map.get(comprador, "direccionComprador")
+        ),
       "municipio" => value_or_default(Map.get(comprador, "municipioComprador"), "010101"),
       "provincia" => value_or_default(Map.get(comprador, "provinciaComprador"), "010000"),
-      "tablaTelefonoEmisor" => supplier_phone_list(payload),
+      "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
   end
@@ -527,14 +561,38 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     comprador = build_comprador(payload)
 
     %{
-      "rncEmisor" => string_or_empty(Map.get(comprador, "rncComprador")),
-      "razonSocialEmisor" => string_or_empty(Map.get(comprador, "razonSocialComprador")),
-      "nombreComercial" => string_or_empty(Map.get(comprador, "razonSocialComprador")),
-      "direccionEmisor" => string_or_empty(Map.get(comprador, "direccionComprador")),
+      "rncEmisor" =>
+        rnc_or_empty(
+          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
+            Map.get(comprador, "rncComprador")
+        ),
+      "razonSocialEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
+            Map.get(comprador, "razonSocialComprador")
+        ),
+      "nombreComercial" =>
+        string_or_empty(
+          value_from_keys(payload, [
+            "nombreComercial",
+            "nombre_comercial",
+            "razonSocialEmisor",
+            "razon_social_emisor"
+          ]) || Map.get(comprador, "razonSocialComprador")
+        ),
+      "direccionEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
+            Map.get(comprador, "direccionComprador")
+        ),
       "municipio" => value_or_default(Map.get(comprador, "municipioComprador"), "010101"),
       "provincia" => value_or_default(Map.get(comprador, "provinciaComprador"), "010000"),
-      "tablaTelefonoEmisor" => supplier_phone_list(payload),
-      "correoEmisor" => string_or_empty(Map.get(comprador, "correoComprador")),
+      "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
+      "correoEmisor" =>
+        string_or_empty(
+          value_from_keys(payload, ["correoEmisor", "correo_emisor"]) ||
+            Map.get(comprador, "correoComprador")
+        ),
       "webSite" => "",
       "numeroFacturaInterna" => string_or_empty(payload_value(payload, "payment_reference")),
       "numeroPedidoInterno" =>
@@ -602,7 +660,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     emisor = build_emisor_e41(payload, company)
 
     %{
-      "rncComprador" => string_or_empty(Map.get(emisor, "rncEmisor")),
+      "rncComprador" => rnc_or_empty(Map.get(emisor, "rncEmisor")),
       "razonSocialComprador" => string_or_empty(Map.get(emisor, "razonSocialEmisor")),
       "correoComprador" => string_or_empty(company_email(company)),
       "direccionComprador" => string_or_empty(Map.get(emisor, "direccionEmisor")),
@@ -615,7 +673,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     emisor = build_emisor_e43(payload, company)
 
     %{
-      "rncComprador" => string_or_empty(Map.get(emisor, "rncEmisor")),
+      "rncComprador" => rnc_or_empty(Map.get(emisor, "rncEmisor")),
       "razonSocialComprador" => string_or_empty(Map.get(emisor, "razonSocialEmisor")),
       "contactoComprador" => string_or_empty(Map.get(emisor, "nombreComercial")),
       "correoComprador" => string_or_empty(Map.get(emisor, "correoEmisor")),
@@ -1208,7 +1266,9 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp customer_name(payload) do
-    payload_value(payload, "invoice_partner_display_name") ||
+    payload_value(payload, "razonSocialComprador") ||
+      payload_value(payload, "razon_social_comprador") ||
+      payload_value(payload, "invoice_partner_display_name") ||
       tuple_label(payload_value(payload, "commercial_partner_id")) ||
       tuple_label(payload_value(payload, "partner_id"))
   end
@@ -1440,6 +1500,37 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "phone"
     ])
     |> normalize_phone_candidates()
+
+  end
+
+  defp buyer_phone_list(payload) do
+    payload
+    |> value_from_keys([
+      "tablaTelefonoComprador",
+      "tabla_telefono_comprador",
+      "telefonoComprador",
+      "telefono_comprador",
+      "partner_phone",
+      "phone"
+    ])
+    |> normalize_phone_candidates()
+  end
+
+  defp emisor_phone_list(payload, fallback \\ []) do
+    payload
+    |> value_from_keys([
+      "tablaTelefonoEmisor",
+      "tabla_telefono_emisor",
+      "telefonoEmisor",
+      "telefono_emisor",
+      "partner_phone",
+      "phone"
+    ])
+    |> normalize_phone_candidates()
+    |> case do
+      [] -> fallback
+      phones -> phones
+    end
   end
 
   defp normalize_phone_candidates(value) when is_list(value) do
@@ -1458,6 +1549,29 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp normalize_phone_candidates(_), do: []
+
+  defp rnc_or_empty(value) do
+    case normalize_rnc(value) do
+      nil -> ""
+      rnc -> rnc
+    end
+  end
+
+  defp normalize_rnc(nil), do: nil
+  defp normalize_rnc(false), do: nil
+  defp normalize_rnc(value) when is_integer(value), do: value
+  defp normalize_rnc(value) when is_float(value), do: trunc(value)
+
+  defp normalize_rnc(value) when is_binary(value) do
+    digits = Regex.replace(~r/\D/, String.trim(value), "")
+
+    case digits do
+      "" -> nil
+      number -> String.to_integer(number)
+    end
+  end
+
+  defp normalize_rnc(value), do: value |> to_string() |> normalize_rnc()
 
   defp value_or_default(value, default) do
     case string_or_empty(value) do

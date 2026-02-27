@@ -80,12 +80,16 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
 
       assert tax_html =~ "RD$ 450.11"
 
-      payload_html =
+      lv
+      |> element("#raw-json-btn-#{tx.id}")
+      |> render_click()
+
+      modal_html =
         lv
-        |> element("#transactions [data-role=\"transaction-row\"][data-rnc=\"#{rnc}\"] pre")
+        |> element("#transaction-raw-json-client")
         |> render()
 
-      assert payload_html =~ "\"e_doc\": \"DGII-42\""
+      assert modal_html =~ "&quot;e_doc&quot;: &quot;DGII-42&quot;"
     end
   end
 end
