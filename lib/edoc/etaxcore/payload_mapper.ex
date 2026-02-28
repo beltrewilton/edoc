@@ -1376,7 +1376,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "vat",
       "tax_id"
     ]
-    |> Enum.find_value(&payload_value(payload, &1))
+    |> Enum.find_value(fn key ->
+      payload
+      |> payload_value(key)
+      |> normalize_vat()
+    end)
   end
 
   defp line_tax_id(%{} = line) do
@@ -1387,10 +1391,31 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tax_id",
       "customer_tax_id"
     ]
-    |> Enum.find_value(&payload_value(line, &1))
+    |> Enum.find_value(fn key ->
+      line
+      |> payload_value(key)
+      |> normalize_vat()
+    end)
   end
 
   defp line_tax_id(_), do: nil
+
+  defp normalize_vat(nil), do: nil
+  defp normalize_vat(false), do: nil
+  defp normalize_vat(value) when is_integer(value), do: Integer.to_string(value)
+  defp normalize_vat(value) when is_float(value), do: value |> trunc() |> Integer.to_string()
+
+  defp normalize_vat(value) when is_binary(value) do
+    digits = Regex.replace(~r/\D/, String.trim(value), "")
+    if digits == "", do: nil, else: digits
+  end
+
+  defp normalize_vat(value) do
+    case String.Chars.impl_for(value) do
+      nil -> nil
+      _impl -> value |> to_string() |> normalize_vat()
+    end
+  end
 
   defp tuple_label([_id, label]) when is_binary(label), do: label
   defp tuple_label(_), do: nil

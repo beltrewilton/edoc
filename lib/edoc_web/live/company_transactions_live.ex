@@ -164,7 +164,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
           <div class="overflow-x-auto">
             <div class="min-w-[900px]">
-              <div class="grid grid-cols-6 gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-400">
+              <div class="grid grid-cols-[2.2fr_1.3fr_1fr_1fr_0.85fr_9.5rem] gap-2 border-b border-slate-200 bg-slate-50 px-5 py-3 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:border-slate-800 dark:bg-slate-950/45 dark:text-slate-400">
                 <p>e-DOC</p>
                 <p>RNC</p>
                 <p>Amount</p>
@@ -186,8 +186,8 @@ defmodule EdocWeb.CompanyTransactionsLive do
                   :for={{dom_id, transaction} <- @streams.transactions}
                   id={dom_id}
                   data-role="transaction-row"
-                  data-rnc={odoo_value(transaction, :partner_vat) || ""}
-                  class="grid grid-cols-6 gap-2 px-5 py-4 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/35"
+                  data-rnc={rnc_column_value(transaction)}
+                  class="grid grid-cols-[2.2fr_1.3fr_1fr_1fr_0.85fr_9.5rem] gap-2 px-5 py-4 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/35"
                 >
                   <div>
                     <p class="font-semibold text-slate-900 dark:text-slate-100">
@@ -197,12 +197,27 @@ defmodule EdocWeb.CompanyTransactionsLive do
                       {display_invoice_partner_name(transaction)}
                     </p>
                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                      {display_name(transaction)}
+                      <%= if link = display_name_link(transaction, @company) do %>
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="group inline-flex items-center gap-1 rounded-sm px-0.5 underline decoration-slate-300 decoration-2 underline-offset-2 transition duration-200 hover:text-slate-700 hover:decoration-slate-400 dark:decoration-slate-600 dark:hover:text-slate-200 dark:hover:decoration-slate-500"
+                        >
+                          {display_name(transaction)}
+                          <.icon
+                            name="hero-arrow-top-right-on-square"
+                            class="size-3.5 shrink-0 text-slate-400 transition duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-slate-600 dark:text-slate-500 dark:group-hover:text-slate-300"
+                          />
+                        </a>
+                      <% else %>
+                        {display_name(transaction)}
+                      <% end %>
                     </p>
                   </div>
 
                   <div class="font-medium text-slate-700 dark:text-slate-300">
-                    {odoo_value(transaction, :partner_vat) || "—"}
+                    {rnc_column_value(transaction)}
                   </div>
                   <div class="font-semibold text-emerald-700 dark:text-emerald-300">
                     <span data-field="amount">{format_currency(odoo_value(transaction, :amount))}</span>
@@ -211,7 +226,10 @@ defmodule EdocWeb.CompanyTransactionsLive do
                     <span data-field="tax">{format_currency(odoo_value(transaction, :tax))}</span>
                   </div>
                   <div class="text-slate-600 dark:text-slate-300">
-                    {format_timestamp_utc_minus_4(transaction.odoo_request_at)}
+                    <p class="leading-tight">{format_requested_at_date(transaction.odoo_request_at)}</p>
+                    <p class="text-xs leading-tight text-slate-500 dark:text-slate-400">
+                      {format_requested_at_time(transaction.odoo_request_at)}
+                    </p>
                   </div>
 
                   <div class="text-right">
@@ -406,15 +424,60 @@ defmodule EdocWeb.CompanyTransactionsLive do
     |> present_string() || "—"
   end
 
+  defp display_name_link(transaction, %Company{} = company) do
+    with display_name when display_name != "—" <- display_name(transaction),
+         base_url when is_binary(base_url) <- present_string(company.odoo_url),
+         record_id when is_binary(record_id) <- odoo_record_id(transaction) do
+      section = if emisor_rnc_edoc?(transaction), do: "bills", else: "invoicing"
+      "#{String.trim_trailing(base_url, "/")}/odoo/accounting/1/#{section}/#{record_id}"
+    else
+      _ -> nil
+    end
+  end
+
+  defp display_name_link(_, _), do: nil
+
+  defp odoo_record_id(transaction) do
+    transaction
+    |> odoo_value(:odoo_id)
+    |> normalize_record_id()
+  end
+
+  defp rnc_column_value(transaction) do
+    if emisor_rnc_edoc?(transaction) do
+      odoo_value(transaction, :rnc_emisor) || "—"
+    else
+      odoo_value(transaction, :partner_vat) || "—"
+    end
+  end
+
   defp odoo_value(%{odoo_request: request}, key) when is_atom(key) do
     request = request || %{}
 
     case key do
-      :amount -> amount_from_payload(request)
-      :tax -> tax_from_payload(request)
-      :e_doc -> derive_edoc(request)
-      :rnc -> Map.get(request, "rnc") || Map.get(request, :rnc)
-      _ -> Map.get(request, key) || Map.get(request, Atom.to_string(key))
+      :amount ->
+        amount_from_payload(request)
+
+      :tax ->
+        tax_from_payload(request)
+
+      :e_doc ->
+        derive_edoc(request)
+
+      :rnc ->
+        Map.get(request, "rnc") || Map.get(request, :rnc)
+
+      :rnc_emisor ->
+        Map.get(request, "rncEmisor") ||
+          Map.get(request, :rncEmisor) ||
+          Map.get(request, "rnc_emisor") ||
+          Map.get(request, :rnc_emisor)
+
+      :odoo_id ->
+        Map.get(request, "id") || Map.get(request, :id)
+
+      _ ->
+        Map.get(request, key) || Map.get(request, Atom.to_string(key))
     end
   end
 
@@ -426,6 +489,21 @@ defmodule EdocWeb.CompanyTransactionsLive do
   end
 
   defp present_string(_), do: nil
+
+  defp normalize_record_id(value) when is_integer(value) and value > 0,
+    do: Integer.to_string(value)
+
+  defp normalize_record_id(value) when is_binary(value) do
+    trimmed = String.trim(value)
+
+    case Integer.parse(trimmed) do
+      {id, ""} when id > 0 -> Integer.to_string(id)
+      _ -> nil
+    end
+  end
+
+  defp normalize_record_id([value | _]), do: normalize_record_id(value)
+  defp normalize_record_id(_), do: nil
 
   defp format_company_rnc(%Company{rnc: nil}), do: "RNC unavailable"
   defp format_company_rnc(%Company{rnc: rnc}), do: "RNC #{rnc}"
@@ -461,9 +539,27 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   defp format_timestamp_utc_minus_4(%DateTime{} = datetime) do
     datetime
-    |> DateTime.add(-4 * 60 * 60, :second)
+    |> utc_minus_4()
     |> Calendar.strftime("%b %d, %Y · %I:%M %p")
   end
+
+  defp format_requested_at_date(nil), do: "—"
+
+  defp format_requested_at_date(%DateTime{} = datetime) do
+    datetime
+    |> utc_minus_4()
+    |> Calendar.strftime("%b %d, %Y")
+  end
+
+  defp format_requested_at_time(nil), do: "—"
+
+  defp format_requested_at_time(%DateTime{} = datetime) do
+    datetime
+    |> utc_minus_4()
+    |> Calendar.strftime("%I:%M %p")
+  end
+
+  defp utc_minus_4(datetime), do: DateTime.add(datetime, -4 * 60 * 60, :second)
 
   defp default_raw_json_payloads do
     %{
@@ -533,6 +629,31 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   defp valid_edoc?(value) when is_binary(value), do: String.trim(value) != ""
   defp valid_edoc?(_), do: false
+
+  defp emisor_rnc_edoc?(transaction) do
+    case extract_edoc_type(transaction) do
+      "41" -> true
+      "43" -> true
+      "47" -> true
+      _ -> false
+    end
+  end
+
+  defp extract_edoc_type(transaction) do
+    transaction
+    |> display_edoc()
+    |> present_string()
+    |> case do
+      nil ->
+        nil
+
+      value ->
+        case Regex.run(~r/^E?(\d{2})/i, value) do
+          [_, type] -> type
+          _ -> nil
+        end
+    end
+  end
 
   defp coerce_decimal(%Decimal{} = value), do: value
   defp coerce_decimal(value) when is_integer(value), do: Decimal.new(value)

@@ -829,4 +829,43 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["comprador"]["identificadorExtranjero"] == "999999999"
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC Company"
   end
+
+  test "normalizes vat buyer values across formats when mapping E31" do
+    base_payload = %{
+      "_id" => 31_777,
+      "amount_tax" => 180.0,
+      "amount_total" => 1180.0,
+      "amount_untaxed" => 1000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "payment_reference" => "INV/2026/1777",
+      "invoice_partner_display_name" => "Cliente VAT",
+      "x_studio_e_doc_inv" => "E31",
+      "invoice_items" => [
+        %{
+          "name" => "Item VAT",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    vat_formats = [
+      "131244343",
+      "1-31-244343",
+      "13124-4343",
+      " 131.24/4343 "
+    ]
+
+    for vat <- vat_formats do
+      payload = Map.put(base_payload, "vat", vat)
+      mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000001777")
+
+      assert mapped["encabezado"]["comprador"]["rncComprador"] == 131244343
+    end
+  end
 end

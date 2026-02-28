@@ -30,6 +30,7 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
       first_tx =
         transaction_fixture(company, %{
           odoo_request: %{
+            "id" => 11287,
             "partner_vat" => "401004001",
             "invoice_partner_display_name" => "Santo Domingo Motors Company",
             "display_name" => "INV/2026/02/0008"
@@ -83,7 +84,13 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
       assert render(lv) =~ "SANTO DOMINGO MOTORS COMPANY"
       assert render(lv) =~ "DGII-42"
       assert render(lv) =~ "INV/2026/02/0008"
-      assert render(lv) =~ "Feb 14, 2026 · 03:45 PM"
+      assert render(lv) =~ "Feb 14, 2026"
+      assert render(lv) =~ "03:45 PM"
+
+      assert has_element?(
+               lv,
+               "#transactions a[href=\"#{company.odoo_url}/odoo/accounting/1/invoicing/11287\"]"
+             )
 
       tax_html =
         lv
@@ -117,6 +124,38 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
         |> render()
 
       assert provider_modal_html =~ "&quot;provider_marker&quot;: &quot;etaxcore&quot;"
+    end
+
+    test "uses rncEmisor in RNC column for E43", %{conn: conn, company: company} do
+      transaction_fixture(company, %{
+        odoo_request: %{
+          "id" => 22334,
+          "rncEmisor" => "101010101",
+          "partner_vat" => "909090909",
+          "invoice_partner_display_name" => "Proveedor Local",
+          "display_name" => "BILL/2026/02/0010"
+        },
+        e_doc: "E43",
+        amount: 1500.0,
+        tax: 270.0
+      })
+
+      {:ok, lv, _html} = live(conn, ~p"/companies/#{company.id}/transactions")
+
+      assert has_element?(
+               lv,
+               "#transactions [data-role=\"transaction-row\"][data-rnc=\"101010101\"]"
+             )
+
+      assert has_element?(
+               lv,
+               "#transactions a[href=\"#{company.odoo_url}/odoo/accounting/1/bills/22334\"]"
+             )
+
+      refute has_element?(
+               lv,
+               "#transactions [data-role=\"transaction-row\"][data-rnc=\"909090909\"]"
+             )
     end
   end
 end
