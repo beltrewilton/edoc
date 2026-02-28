@@ -15,6 +15,7 @@ defmodule EdocWeb.WebhookController do
   @pubsub_server Edoc.PubSub
   @partner_as_comprador_tipos [31, 32, 33, 34, 44, 45, 46]
   @partner_as_emisor_tipos [41, 43, 47]
+  @referenced_ncf_tipos [33, 34]
 
   def create(conn, %{"user_id" => user_id, "company_id" => company_id}) do
     with {:ok, payload} <- decode_body(conn),
@@ -110,7 +111,8 @@ defmodule EdocWeb.WebhookController do
              enriched_payload <-
                payload
                |> enrich_with_invoice_items(invoice_data)
-               |> enrich_with_invoice_partner(client, uid, invoice_data) do
+               |> enrich_with_invoice_partner(client, uid, invoice_data)
+               |> enrich_with_referenced_ncf_data(client, uid) do
           {:ok, enriched_payload, {client, uid}}
         end
     end
@@ -156,6 +158,52 @@ defmodule EdocWeb.WebhookController do
     end
   end
 
+  defp enrich_with_referenced_ncf_data(payload, %Odoo{} = client, uid) do
+    case resolve_tipo_ecf(payload) do
+      tipo when tipo in @referenced_ncf_tipos ->
+        payload
+        |> put_reversed_entry_ncf(client, uid)
+        |> put_modification_reason_from_ref()
+
+      _ ->
+        payload
+    end
+  end
+
+  defp put_reversed_entry_ncf(payload, %Odoo{} = client, uid) do
+    case reversed_entry_invoice_id(payload) do
+      nil ->
+        payload
+
+      reversed_invoice_id ->
+        reversed_ref =
+          client
+          |> Odoo.get_invoice_data(uid, reversed_invoice_id)
+          |> reversed_invoice_ref()
+
+        put_if_present(payload, "ncfModificado", reversed_ref)
+    end
+  end
+
+  defp put_modification_reason_from_ref(payload) do
+    ref = normalize_payload_string(payload_value(payload, "ref")) || ""
+    Map.put(payload, "razonModificacion", ref)
+  end
+
+  defp reversed_entry_invoice_id(payload) do
+    payload
+    |> payload_value("reversed_entry_id")
+    |> normalize_odoo_reference_id()
+  end
+
+  defp reversed_invoice_ref(%{invoice: %{} = invoice}) do
+    invoice
+    |> Map.get("ref")
+    |> normalize_payload_string()
+  end
+
+  defp reversed_invoice_ref(_), do: nil
+
   defp invoice_partner_id(%{invoice: %{} = invoice}) do
     invoice
     |> Map.get("partner_id")
@@ -165,6 +213,7 @@ defmodule EdocWeb.WebhookController do
   defp invoice_partner_id(_), do: nil
 
   defp normalize_odoo_reference_id([id | _rest]) when is_integer(id), do: id
+  defp normalize_odoo_reference_id([id | _rest]) when is_binary(id), do: normalize_invoice_id(id)
   defp normalize_odoo_reference_id(id) when is_integer(id), do: id
 
   defp normalize_odoo_reference_id(value) when is_binary(value) do
@@ -323,6 +372,21 @@ defmodule EdocWeb.WebhookController do
     do: to_string(value)
 
   defp normalize_partner_string(_), do: nil
+
+  defp normalize_payload_string(nil), do: nil
+  defp normalize_payload_string(false), do: nil
+
+  defp normalize_payload_string(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_payload_string(value) when is_integer(value) or is_float(value),
+    do: to_string(value)
+
+  defp normalize_payload_string(_), do: nil
 
   defp put_if_present(map, _key, value) when value in [nil, "", []], do: map
   defp put_if_present(map, key, value), do: Map.put(map, key, value)

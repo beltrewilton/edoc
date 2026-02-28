@@ -204,7 +204,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "partner_id" => 316,
       "payment_reference" => "INV/2026/02/0101",
       "x_studio_e_doc_inv" => "E33",
-      "ncf_modificado" => "E320000000002",
+      "reversed_entry_ref" => "E320000000002",
       "fecha_ncf_modificado" => "2026-02-20",
       "codigo_modificacion" => 3,
       "invoice_items" => [
@@ -273,11 +273,11 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "name" => "RFD/2026/02/0001",
       "partner_id" => 999,
       "payment_reference" => "RFD/2026/02/0001",
+      "ref" => "Ajuste de credito en factura original",
       "x_studio_e_doc_inv" => "E34",
-      "ncf_modificado" => "E310000000001",
+      "reversed_entry_ref" => "E310000000001",
       "fecha_ncf_modificado" => "2026-02-20",
       "codigo_modificacion" => 2,
-      "razon_modificacion" => "Error en datos",
       "tax_totals" => %{
         "base_amount" => 1000.0,
         "tax_amount" => 180.0,
@@ -332,7 +332,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "ncfModificado" => "E310000000001",
              "fechaNCFModificado" => "20-02-2026",
              "codigoModificacion" => 2,
-             "razonModificacion" => "Error en datos"
+             "razonModificacion" => "Ajuste de credito en factura original"
            }
 
     assert [
@@ -681,6 +681,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "payment_reference" => "INV/2026/0047",
       "identificador_extranjero" => "533445888",
       "invoice_partner_display_name" => "ALEJA FERMIN SANTOS",
+      "rnc_comprador" => "533-44588-8",
       "numero_cuenta_pago" => "BB00058745214789635111111111",
       "banco_pago" =>
         "BB0111111111111111111111111111111111111111111111111111111111111111111111111",
@@ -707,9 +708,12 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["bancoPago"] ==
              "BB0111111111111111111111111111111111111111111111111111111111111111111111111"
 
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 533445888
+    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "ALEJA FERMIN SANTOS"
+
     assert mapped["encabezado"]["comprador"] == %{
-             "identificadorExtranjero" => "533445888",
-             "razonSocialComprador" => "ALEJA FERMIN SANTOS"
+             "identificadorExtranjero" => "123456789",
+             "razonSocialComprador" => "EDOC SRL"
            }
 
     assert mapped["encabezado"]["totales"] == %{
@@ -822,5 +826,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["emisor"]["nombreComercial"] == "Proveedor E47"
     assert mapped["encabezado"]["emisor"]["direccionEmisor"] == "Santiago, Calle 1"
     assert mapped["encabezado"]["emisor"]["tablaTelefonoEmisor"] == ["809-444-1212"]
+    assert mapped["encabezado"]["comprador"]["identificadorExtranjero"] == "999999999"
+    assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC Company"
   end
 end

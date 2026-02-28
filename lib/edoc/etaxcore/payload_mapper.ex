@@ -197,8 +197,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e47(payload, opts),
-        "emisor" => build_emisor_e47(payload, company),
-        "comprador" => build_comprador_e47(payload),
+        "emisor" => build_emisor_e47_from_supplier(payload),
+        "comprador" => build_comprador_e47_from_company(payload, company),
         "totales" => build_totales_e47(payload),
         "otraMoneda" => build_otra_moneda_e47(payload)
       },
@@ -378,31 +378,23 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "rncEmisor" =>
         rnc_or_empty(
-          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
-            company_field(company, :rnc)
+          company_field(company, :rnc)
         ),
       "razonSocialEmisor" =>
         string_or_empty(
-          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
-            company_field(company, :company_name)
+          company_field(company, :company_name)
         ),
       "nombreComercial" =>
         string_or_empty(
-          value_from_keys(payload, [
-            "nombreComercial",
-            "nombre_comercial",
-            "razonSocialEmisor",
-            "razon_social_emisor"
-          ]) || company_field(company, :company_name)
+          company_field(company, :company_name)
         ),
       "direccionEmisor" =>
         string_or_empty(
-          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
-            company_address(company)
+          company_address(company)
         ),
       "municipio" => municipio,
       "provincia" => provincia,
-      "tablaTelefonoEmisor" => emisor_phone_list(payload, company_phone_list(company)),
+      "tablaTelefonoEmisor" => company_phone_list(company),
       "correoEmisor" => string_or_empty(company_email(company)),
       "webSite" => string_or_empty(company_website(company)),
       "codigoVendedor" => string_or_empty(company_field(company, :codigo_vendedor)),
@@ -498,20 +490,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_emisor_e41(payload, %Company{} = company) do
-    payload
-    |> build_emisor(company)
-    |> Map.take([
-      "rncEmisor",
-      "razonSocialEmisor",
-      "direccionEmisor",
-      "municipio",
-      "provincia",
-      "tablaTelefonoEmisor",
-      "fechaEmision"
-    ])
-  end
-
   defp build_emisor_e41_from_supplier(payload) do
     comprador = build_comprador_e41(payload)
 
@@ -536,25 +514,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
-  end
-
-  defp build_emisor_e43(payload, %Company{} = company) do
-    payload
-    |> build_emisor(company)
-    |> Map.take([
-      "rncEmisor",
-      "razonSocialEmisor",
-      "nombreComercial",
-      "direccionEmisor",
-      "municipio",
-      "provincia",
-      "tablaTelefonoEmisor",
-      "correoEmisor",
-      "webSite",
-      "numeroFacturaInterna",
-      "numeroPedidoInterno",
-      "fechaEmision"
-    ])
   end
 
   defp build_emisor_e43_from_supplier(payload) do
@@ -624,9 +583,9 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     ])
   end
 
-  defp build_emisor_e47(payload, %Company{} = company) do
+  defp build_emisor_e47_from_supplier(payload) do
     payload
-    |> build_emisor(company)
+    |> build_emisor_e43_from_supplier()
     |> Map.take([
       "rncEmisor",
       "razonSocialEmisor",
@@ -656,33 +615,33 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     ])
   end
 
-  defp build_comprador_e41_from_company(payload, %Company{} = company) do
-    emisor = build_emisor_e41(payload, company)
-
+  defp build_comprador_e41_from_company(_payload, %Company{} = company) do
     %{
-      "rncComprador" => rnc_or_empty(Map.get(emisor, "rncEmisor")),
-      "razonSocialComprador" => string_or_empty(Map.get(emisor, "razonSocialEmisor")),
+      "rncComprador" => rnc_or_empty(company_field(company, :rnc)),
+      "razonSocialComprador" => string_or_empty(company_field(company, :company_name)),
       "correoComprador" => string_or_empty(company_email(company)),
-      "direccionComprador" => string_or_empty(Map.get(emisor, "direccionEmisor")),
-      "municipioComprador" => string_or_empty(Map.get(emisor, "municipio")),
-      "provinciaComprador" => string_or_empty(Map.get(emisor, "provincia"))
+      "direccionComprador" => string_or_empty(company_address(company)),
+      "municipioComprador" => value_or_default(company_field(company, :municipio), "010101"),
+      "provinciaComprador" => value_or_default(company_field(company, :provincia), "010000")
     }
   end
 
   defp build_comprador_e43_from_company(payload, %Company{} = company) do
-    emisor = build_emisor_e43(payload, company)
-
     %{
-      "rncComprador" => rnc_or_empty(Map.get(emisor, "rncEmisor")),
-      "razonSocialComprador" => string_or_empty(Map.get(emisor, "razonSocialEmisor")),
-      "contactoComprador" => string_or_empty(Map.get(emisor, "nombreComercial")),
-      "correoComprador" => string_or_empty(Map.get(emisor, "correoEmisor")),
-      "direccionComprador" => string_or_empty(Map.get(emisor, "direccionEmisor")),
-      "municipioComprador" => string_or_empty(Map.get(emisor, "municipio")),
-      "provinciaComprador" => string_or_empty(Map.get(emisor, "provincia")),
+      "rncComprador" => rnc_or_empty(company_field(company, :rnc)),
+      "razonSocialComprador" => string_or_empty(company_field(company, :company_name)),
+      "contactoComprador" => string_or_empty(company_field(company, :company_name)),
+      "correoComprador" => string_or_empty(company_email(company)),
+      "direccionComprador" => string_or_empty(company_address(company)),
+      "municipioComprador" => value_or_default(company_field(company, :municipio), "010101"),
+      "provinciaComprador" => value_or_default(company_field(company, :provincia), "010000"),
       "fechaEntrega" => format_date(payload_value(payload, "invoice_date_due")),
       "fechaOrdenCompra" => format_date(payload_value(payload, "invoice_date")),
-      "numeroOrdenCompra" => string_or_empty(Map.get(emisor, "numeroPedidoInterno")),
+      "numeroOrdenCompra" =>
+        string_or_empty(
+          payload_value(payload, "invoice_origin") ||
+            payload_value(payload, "payment_reference") || payload_value(payload, "name")
+        ),
       "codigoInternoComprador" =>
         string_or_empty(company_field(company, :id) || payload_value(payload, "company_id"))
     }
@@ -715,15 +674,20 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     })
   end
 
-  defp build_comprador_e47(payload) do
+  defp build_comprador_e47_from_company(payload, %Company{} = company) do
     %{
       "identificadorExtranjero" =>
         value_as_string(
-          payload,
-          ["identificadorExtranjero", "identificador_extranjero", "commercial_partner_id"],
-          ""
+          company_field(company, :rnc) || company_field(company, :id),
+          ["identificadorExtranjero"],
+          value_as_string(
+            payload,
+            ["identificadorExtranjero", "identificador_extranjero", "commercial_partner_id"],
+            ""
+          )
         ),
-      "razonSocialComprador" => string_or_empty(customer_name(payload))
+      "razonSocialComprador" =>
+        string_or_empty(company_field(company, :company_name) || customer_name(payload))
     }
   end
 
@@ -1340,14 +1304,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp modified_ncf(payload) do
     [
+      "reversed_entry_ref",
+      "reversedEntryRef",
+      "reversed_invoice_ref",
       "ncfModificado",
       "ncf_modificado",
       "ncf_modifcado",
       "x_studio_ncf_modificado",
       "l10n_do_origin_ncf",
       "invoice_origin_ncf",
-      "reference_ncf",
-      "ref"
+      "reference_ncf"
     ]
     |> Enum.find_value(&payload_value(payload, &1))
     |> string_or_empty()
@@ -1382,6 +1348,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp modification_reason(payload) do
     [
+      "ref",
       "razonModificacion",
       "razon_modificacion",
       "x_studio_razon_modificacion",

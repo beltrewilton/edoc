@@ -268,6 +268,7 @@ defmodule Edoc.OdooAutomationClient do
       "status_in_payment",
       "tax_totals",
       "transaction_ids",
+      "reversed_entry_id",
       "x_studio_e_doc_inv",
       "x_studio_e_doc_bill"
     ]
@@ -888,6 +889,25 @@ defmodule Edoc.OdooAutomationClient do
       "account.move",
       "write",
       attr
+    )
+  end
+
+  @doc """
+  Insert a "Log Note" in the invoice chatter for the given account.move ID.
+  """
+  @spec add_invoice_log_note(t(), integer(), integer(), String.t()) :: any()
+  def add_invoice_log_note(%__MODULE__{} = client, uid, invoice_id, note) do
+    execute_kw!(
+      client,
+      uid,
+      "account.move",
+      "message_post",
+      [[invoice_id]],
+      %{
+        body: note,
+        message_type: "comment",
+        subtype_xmlid: "mail.mt_note"
+      }
     )
   end
 end

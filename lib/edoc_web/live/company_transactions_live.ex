@@ -26,8 +26,10 @@ defmodule EdocWeb.CompanyTransactionsLive do
           socket
           |> assign(:company, company)
           |> assign(:page_title, "Transactions · #{company.company_name}")
-          |> assign(:raw_json_payload, nil)
-          |> assign(:raw_json_transaction_id, nil)
+          |> assign(:raw_json_payloads, default_raw_json_payloads())
+          |> assign(:raw_json_tab, :odoo_request)
+          |> assign(:raw_json_edoc, nil)
+          |> assign(:raw_json_inserted_at, nil)
           |> stream(:transactions, transactions, reset: true)
           |> maybe_subscribe(scope, company)
 
@@ -53,19 +55,31 @@ defmodule EdocWeb.CompanyTransactionsLive do
   def handle_info(_message, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_event("open_raw_json", %{"payload" => payload} = params, socket) do
+  def handle_event("open_raw_json", params, socket) do
     {:noreply,
      socket
-     |> assign(:raw_json_payload, payload)
-     |> assign(:raw_json_transaction_id, Map.get(params, "transaction_id"))}
+     |> assign(:raw_json_payloads, %{
+       odoo_request: Map.get(params, "odoo_request_payload") || "No payload yet",
+       provider_request: Map.get(params, "provider_request_payload") || "No payload yet"
+     })
+     |> assign(:raw_json_tab, :odoo_request)
+     |> assign(:raw_json_edoc, Map.get(params, "edoc"))
+     |> assign(:raw_json_inserted_at, Map.get(params, "inserted_at"))}
+  end
+
+  @impl true
+  def handle_event("switch_raw_json_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :raw_json_tab, normalize_raw_json_tab(tab))}
   end
 
   @impl true
   def handle_event("close_raw_json", _params, socket) do
     {:noreply,
      socket
-     |> assign(:raw_json_payload, nil)
-     |> assign(:raw_json_transaction_id, nil)}
+     |> assign(:raw_json_payloads, default_raw_json_payloads())
+     |> assign(:raw_json_tab, :odoo_request)
+     |> assign(:raw_json_edoc, nil)
+     |> assign(:raw_json_inserted_at, nil)}
   end
 
   @impl true
@@ -172,16 +186,23 @@ defmodule EdocWeb.CompanyTransactionsLive do
                   :for={{dom_id, transaction} <- @streams.transactions}
                   id={dom_id}
                   data-role="transaction-row"
-                  data-rnc={odoo_value(transaction, :rnc) || ""}
+                  data-rnc={odoo_value(transaction, :partner_vat) || ""}
                   class="grid grid-cols-6 gap-2 px-5 py-4 text-sm transition hover:bg-slate-50 dark:hover:bg-slate-800/35"
                 >
                   <div>
-                    <p class="font-semibold text-slate-900 dark:text-slate-100">{display_edoc(transaction)}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">ID: {transaction.id}</p>
+                    <p class="font-semibold text-slate-900 dark:text-slate-100">
+                      {display_edoc(transaction)}
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      {display_invoice_partner_name(transaction)}
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                      {display_name(transaction)}
+                    </p>
                   </div>
 
                   <div class="font-medium text-slate-700 dark:text-slate-300">
-                    {odoo_value(transaction, :rnc) || "—"}
+                    {odoo_value(transaction, :partner_vat) || "—"}
                   </div>
                   <div class="font-semibold text-emerald-700 dark:text-emerald-300">
                     <span data-field="amount">{format_currency(odoo_value(transaction, :amount))}</span>
@@ -190,7 +211,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
                     <span data-field="tax">{format_currency(odoo_value(transaction, :tax))}</span>
                   </div>
                   <div class="text-slate-600 dark:text-slate-300">
-                    {format_timestamp(transaction.odoo_request_at)}
+                    {format_timestamp_utc_minus_4(transaction.odoo_request_at)}
                   </div>
 
                   <div class="text-right">
@@ -201,8 +222,11 @@ defmodule EdocWeb.CompanyTransactionsLive do
                       phx-click={
                         JS.push("open_raw_json",
                           value: %{
-                            payload: transaction_payload(transaction),
-                            transaction_id: transaction.id
+                            odoo_request_payload: transaction_payload(transaction, :odoo_request),
+                            provider_request_payload:
+                              transaction_payload(transaction, :provider_request),
+                            edoc: transaction.edoc || "—",
+                            inserted_at: format_timestamp_utc_minus_4(transaction.inserted_at)
                           }
                         )
                         |> show_modal("transaction-raw-json-modal")
@@ -228,17 +252,47 @@ defmodule EdocWeb.CompanyTransactionsLive do
         <:modal_box class="w-[96vw] max-w-6xl p-0" content_class="h-[82vh]">
           <section id="transaction-raw-json-viewer" class="flex h-full flex-col">
             <header class="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
-              <div>
+              <div class="flex-1">
                 <h3 class="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
                   Raw JSON payload
                 </h3>
-                <p class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">
-                  <%= if @raw_json_transaction_id do %>
-                    Transaction ID: {@raw_json_transaction_id}
-                  <% else %>
-                    Select a transaction to inspect its payload.
-                  <% end %>
-                </p>
+                <div class="mt-1 flex flex-wrap items-center gap-4 text-sm font-medium text-slate-800 dark:text-slate-200">
+                  <span>e-DOC: {@raw_json_edoc || "—"}</span>
+                  <span>{@raw_json_inserted_at || "—"}</span>
+                </div>
+
+                <div class="mt-3 inline-flex rounded-xl border border-slate-200 bg-white/90 p-1 text-xs font-semibold dark:border-slate-700 dark:bg-slate-800/80">
+                  <button
+                    id="raw-json-tab-odoo"
+                    type="button"
+                    phx-click="switch_raw_json_tab"
+                    phx-value-tab="odoo_request"
+                    class={[
+                      "rounded-lg px-3 py-1.5 transition",
+                      @raw_json_tab == :odoo_request &&
+                        "bg-slate-900 text-slate-100 shadow-sm dark:bg-slate-100 dark:text-slate-900",
+                      @raw_json_tab != :odoo_request &&
+                        "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+                    ]}
+                  >
+                    Odoo Request
+                  </button>
+                  <button
+                    id="raw-json-tab-provider"
+                    type="button"
+                    phx-click="switch_raw_json_tab"
+                    phx-value-tab="provider_request"
+                    class={[
+                      "rounded-lg px-3 py-1.5 transition",
+                      @raw_json_tab == :provider_request &&
+                        "bg-slate-900 text-slate-100 shadow-sm dark:bg-slate-100 dark:text-slate-900",
+                      @raw_json_tab != :provider_request &&
+                        "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+                    ]}
+                  >
+                    Provider Request
+                  </button>
+                </div>
               </div>
 
               <div class="ml-auto flex items-center gap-2">
@@ -258,7 +312,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
               id="transaction-raw-json-client"
               phx-hook="RawJsonViewer"
               phx-update="ignore"
-              data-json={@raw_json_payload || ""}
+              data-json={active_raw_json_payload(@raw_json_payloads, @raw_json_tab)}
               class="relative flex-1 overflow-auto bg-slate-950 px-5 py-5"
             >
               <button
@@ -323,12 +377,33 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   defp scope_user_id(_), do: nil
 
-  defp display_edoc(%{edoc: edoc} = transaction) when is_binary(edoc) and edoc != "" do
-    edoc
+  defp display_invoice_partner_name(transaction) do
+    transaction
+    |> odoo_value(:invoice_partner_display_name)
+    |> present_string()
+    |> case do
+      nil -> "—"
+      value -> String.upcase(value)
+    end
+  end
+
+  defp display_name(transaction) do
+    transaction
+    |> odoo_value(:display_name)
+    |> present_string() || "—"
+  end
+
+  defp display_edoc(%{edoc: edoc} = transaction) do
+    present_string(edoc) ||
+      transaction
+      |> odoo_value(:e_doc)
+      |> present_string() || "—"
   end
 
   defp display_edoc(transaction) do
-    odoo_value(transaction, :e_doc) || "—"
+    transaction
+    |> odoo_value(:e_doc)
+    |> present_string() || "—"
   end
 
   defp odoo_value(%{odoo_request: request}, key) when is_atom(key) do
@@ -344,6 +419,13 @@ defmodule EdocWeb.CompanyTransactionsLive do
   end
 
   defp odoo_value(_, _), do: nil
+
+  defp present_string(value) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: nil, else: trimmed
+  end
+
+  defp present_string(_), do: nil
 
   defp format_company_rnc(%Company{rnc: nil}), do: "RNC unavailable"
   defp format_company_rnc(%Company{rnc: rnc}), do: "RNC #{rnc}"
@@ -375,13 +457,43 @@ defmodule EdocWeb.CompanyTransactionsLive do
     Calendar.strftime(datetime, "%b %d, %Y · %H:%M UTC")
   end
 
-  defp transaction_payload(%{odoo_request: nil}), do: "No payload yet"
+  defp format_timestamp_utc_minus_4(nil), do: "—"
 
-  defp transaction_payload(%{odoo_request: map}) when is_map(map) do
+  defp format_timestamp_utc_minus_4(%DateTime{} = datetime) do
+    datetime
+    |> DateTime.add(-4 * 60 * 60, :second)
+    |> Calendar.strftime("%b %d, %Y · %I:%M %p")
+  end
+
+  defp default_raw_json_payloads do
+    %{
+      odoo_request: "No payload yet",
+      provider_request: "No payload yet"
+    }
+  end
+
+  defp normalize_raw_json_tab("provider_request"), do: :provider_request
+  defp normalize_raw_json_tab(:provider_request), do: :provider_request
+  defp normalize_raw_json_tab(_), do: :odoo_request
+
+  defp active_raw_json_payload(payloads, :provider_request),
+    do: Map.get(payloads, :provider_request, "No payload yet")
+
+  defp active_raw_json_payload(payloads, _),
+    do: Map.get(payloads, :odoo_request, "No payload yet")
+
+  defp transaction_payload(transaction, field) when field in [:odoo_request, :provider_request] do
+    payload = Map.get(transaction, field)
+    encode_payload(payload)
+  end
+
+  defp encode_payload(nil), do: "No payload yet"
+
+  defp encode_payload(map) when is_map(map) do
     Jason.encode!(map, pretty: true)
   end
 
-  defp transaction_payload(%{odoo_request: other}) do
+  defp encode_payload(other) do
     inspect(other, pretty: true, limit: :infinity)
   end
 

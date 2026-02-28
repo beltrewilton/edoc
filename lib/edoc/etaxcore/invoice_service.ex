@@ -32,10 +32,11 @@ defmodule Edoc.Etaxcore.InvoiceService do
     request_context = Keyword.get(opts, :request_context, %{})
     odoo_context = Keyword.get(opts, :odoo_context)
 
-    with :ok <- log_request(payload, request_context),
+    with :ok <- log_request(request_context, payload),
          {:ok, e_doc, doc_type} <- generate_edoc(payload),
-         {:ok, transaction} <- insert_transaction(company, tenant, payload, e_doc),
          {:ok, request_payload} <- build_request_payload(payload, company, e_doc),
+         {:ok, transaction} <-
+           insert_transaction(company, tenant, payload, request_payload, e_doc),
          {:ok, result} <-
            dispatch_request(
              transaction,
@@ -50,7 +51,7 @@ defmodule Edoc.Etaxcore.InvoiceService do
     end
   end
 
-  defp log_request(payload, %{} = request_context) do
+  defp log_request(%{} = request_context, payload) do
     payload
     |> build_log_entry(request_context)
     |> RequestLogger.append()
@@ -95,12 +96,12 @@ defmodule Edoc.Etaxcore.InvoiceService do
     print_json("request_payload", request_payload)
     print_json("payload", payload)
 
-    maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type)
+    maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type)
 
     # provider_result =
-    #   case maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type) do
+    #   case maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type) do
     #     :ok -> safe_send_invoice(request_payload)
-    #     {:error, reason} -> {:error, {:odoo_sequence_update_error, reason}}
+    #     {:error, reason} -> {:error, {:odoo_invoice_action_error, reason}}
     #   end
 
     # normalized_provider_response = normalize_provider_response(provider_result)
@@ -140,41 +141,54 @@ defmodule Edoc.Etaxcore.InvoiceService do
     # end
   end
 
-  defp maybe_update_odoo_sequence(odoo_context, payload, e_doc, doc_type) do
+  defp maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type) do
     case payload_invoice_id(payload) do
       nil ->
         :ok
 
       invoice_id ->
-        do_update_odoo_sequence(odoo_context, invoice_id, e_doc, doc_type)
+        do_run_odoo_invoice_actions(odoo_context, invoice_id, e_doc, doc_type)
     end
   end
 
-  defp do_update_odoo_sequence({%Odoo{} = client, uid}, invoice_id, e_doc, doc_type) do
+  defp do_run_odoo_invoice_actions({%Odoo{} = client, uid}, invoice_id, e_doc, doc_type) do
     try do
-      Odoo.add_invoice_sequence(client, uid, invoice_id, e_doc, doc_type)
+      maybe_add_invoice_sequence(client, uid, invoice_id, e_doc, doc_type)
+      Odoo.add_invoice_log_note(client, uid, invoice_id, accepted_request_note())
       :ok
     rescue
       exception ->
-        Logger.error("Failed to update invoice sequence in Odoo: #{Exception.message(exception)}")
+        Logger.error("Failed to run Odoo invoice actions: #{Exception.message(exception)}")
         {:error, exception}
     end
   end
 
-  defp do_update_odoo_sequence(nil, invoice_id, _e_doc, _doc_type) do
+  defp do_run_odoo_invoice_actions(nil, invoice_id, _e_doc, _doc_type) do
     Logger.warning(
-      "Skipping Odoo sequence update due to missing Odoo context for invoice #{inspect(invoice_id)}"
+      "Skipping Odoo invoice actions due to missing Odoo context for invoice #{inspect(invoice_id)}"
     )
 
     :ok
   end
 
-  defp do_update_odoo_sequence(_other, invoice_id, _e_doc, _doc_type) do
+  defp do_run_odoo_invoice_actions(_other, invoice_id, _e_doc, _doc_type) do
     Logger.warning(
-      "Skipping Odoo sequence update due to invalid Odoo context for invoice #{inspect(invoice_id)}"
+      "Skipping Odoo invoice actions due to invalid Odoo context for invoice #{inspect(invoice_id)}"
     )
 
     :ok
+  end
+
+  defp maybe_add_invoice_sequence(_client, _uid, _invoice_id, e_doc, doc_type)
+       when is_nil(e_doc) or is_nil(doc_type),
+       do: :ok
+
+  defp maybe_add_invoice_sequence(%Odoo{} = client, uid, invoice_id, e_doc, doc_type) do
+    Odoo.add_invoice_sequence(client, uid, invoice_id, e_doc, doc_type)
+  end
+
+  defp accepted_request_note do
+    "REQUEST ACEPTADO EN PLATAFORMA #{Date.utc_today()}"
   end
 
   defp safe_send_invoice(payload) do
@@ -185,11 +199,19 @@ defmodule Edoc.Etaxcore.InvoiceService do
       {:error, {:client_exception, exception}}
   end
 
-  defp insert_transaction(%Company{id: company_id}, tenant, payload, e_doc \\ nil) do
+  defp insert_transaction(
+         %Company{id: company_id},
+         tenant,
+         payload,
+         request_payload,
+         e_doc \\ nil
+       ) do
     attrs = %{
       company_id: company_id,
       odoo_request: payload,
+      provider_request: request_payload,
       odoo_request_at: DateTime.utc_now(:second),
+      provider_request_at: DateTime.utc_now(:second),
       edoc: e_doc
     }
 
@@ -244,10 +266,10 @@ defmodule Edoc.Etaxcore.InvoiceService do
     }
   end
 
-  defp normalize_provider_response({:error, {:odoo_sequence_update_error, reason}}) do
+  defp normalize_provider_response({:error, {:odoo_invoice_action_error, reason}}) do
     %{
       "status" => "error",
-      "type" => "odoo_sequence_update_error",
+      "type" => "odoo_invoice_action_error",
       "reason" => format_reason(reason)
     }
   end
