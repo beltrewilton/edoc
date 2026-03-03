@@ -126,7 +126,7 @@ defmodule EdocWeb.WebhookController do
   end
 
   defp build_odoo_context(%Company{} = company) do
-    client = Odoo.new(company.odoo_url, company.odoo_db, company.odoo_user, company.odoo_apikey)
+    client = Odoo.new(company)
     uid = Odoo.authenticate!(client)
     {:ok, client, uid}
   rescue

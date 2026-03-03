@@ -109,7 +109,7 @@ defmodule EdocWeb.CompanyLive do
 
         Task.start(fn ->
           try do
-            client = Odoo.new(url, db, user, apikey)
+            client = Odoo.new(company)
             uid = Odoo.authenticate!(client)
 
             # Step 1: Create invoice field

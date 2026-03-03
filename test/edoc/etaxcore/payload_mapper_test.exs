@@ -66,7 +66,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["encf"] == "E310000000001"
     assert mapped["encabezado"]["idDoc"]["indicadorMontoGravado"] == 1
     assert mapped["encabezado"]["idDoc"]["tipoIngresos"] == "02"
-    assert mapped["encabezado"]["idDoc"]["tipoPago"] == 1
+    assert mapped["encabezado"]["idDoc"]["tipoPago"] == 2
 
     assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
              %{"formaPago" => 1, "montoPago" => 3009.0}
@@ -97,7 +97,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "numeroLinea" => 1,
                "indicadorFacturacion" => 1,
                "nombreItem" => "Botas de Trabajo de Almacen Trugard",
-               "unidadMedida" => "31",
+               "unidadMedida" => "43",
                "cantidadItem" => 1.0,
                "precioUnitarioItem" => 2550.0,
                "montoItem" => 2550.0
@@ -158,7 +158,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "tipoeCF" => 32,
              "encf" => "E320000000001",
              "tipoIngresos" => "01",
-             "tipoPago" => 1,
+             "tipoPago" => 2,
              "tablaFormasPago" => []
            }
 
@@ -176,7 +176,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "numeroLinea" => 1,
                "indicadorFacturacion" => 4,
                "nombreItem" => "Articulo Exento",
-               "unidadMedida" => "47",
+               "unidadMedida" => "43",
                "cantidadItem" => 3.0,
                "precioUnitarioItem" => 1000.0,
                "montoItem" => 3000.0
@@ -188,6 +188,118 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert item["tablaSubDescuento"] == []
     assert item["tablaSubRecargo"] == []
     assert item["tablaImpuestoAdicional"] == []
+  end
+
+  test "maps tipoPago from invoice_payment_term_id" do
+    base_payload = %{
+      "_id" => 31_556,
+      "amount_tax" => 180.0,
+      "amount_total" => 1180.0,
+      "amount_untaxed" => 1000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "payment_reference" => "INV/2026/0556",
+      "x_studio_e_doc_inv" => "E31",
+      "invoice_items" => [
+        %{
+          "name" => "Item Gravado",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    mapped_term_1 =
+      base_payload
+      |> Map.put("invoice_payment_term_id", [1, "Immediate Payment"])
+      |> PayloadMapper.map_e31(company, e_doc: "E310000005560")
+
+    mapped_other_term =
+      base_payload
+      |> Map.put("invoice_payment_term_id", [4, "30 Days"])
+      |> PayloadMapper.map_e31(company, e_doc: "E310000005561")
+
+    assert mapped_term_1["encabezado"]["idDoc"]["tipoPago"] == 1
+    assert mapped_other_term["encabezado"]["idDoc"]["tipoPago"] == 2
+  end
+
+  test "maps indicadorFacturacion from payload tax amount for E31" do
+    base_payload = %{
+      "_id" => 31_555,
+      "amount_total" => 1180.0,
+      "amount_untaxed" => 1000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "payment_reference" => "INV/2026/0555",
+      "x_studio_e_doc_inv" => "E31",
+      "invoice_items" => [
+        %{
+          "name" => "Item Gravado",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    mapped_zero_tax =
+      base_payload
+      |> Map.put("tax_amount", 0.0)
+      |> PayloadMapper.map_e31(company, e_doc: "E310000005550")
+
+    mapped_with_tax =
+      base_payload
+      |> Map.put("tax_amount", 180.0)
+      |> PayloadMapper.map_e31(company, e_doc: "E310000005551")
+
+    assert [%{"indicadorFacturacion" => 4}] = mapped_zero_tax["detallesItems"]
+    assert [%{"indicadorFacturacion" => 1}] = mapped_with_tax["detallesItems"]
+  end
+
+  test "sets indicadorBienoServicio from item type" do
+    payload = %{
+      "_id" => 32_999,
+      "amount_tax" => 0.0,
+      "amount_total" => 2500.0,
+      "amount_untaxed" => 2500.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "payment_reference" => "INV/2026/0299",
+      "x_studio_e_doc_inv" => "E31",
+      "invoice_items" => [
+        %{
+          "name" => "Servicio de soporte",
+          "type" => "service",
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        },
+        %{
+          "name" => "Producto fisico",
+          "type" => "consu",
+          "price_subtotal" => 1500.0,
+          "price_unit" => 1500.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000009998")
+
+    assert [
+             %{"indicadorBienoServicio" => 2},
+             %{"indicadorBienoServicio" => 1}
+           ] = mapped["detallesItems"]
   end
 
   test "maps E33 odoo payload into the target etax shape" do
@@ -230,7 +342,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "encf" => "E330000000001",
              "fechaVencimientoSecuencia" => "15-03-2026",
              "tipoIngresos" => "01",
-             "tipoPago" => 1,
+             "tipoPago" => 2,
              "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 4000.0}]
            }
 
@@ -252,7 +364,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert [
              %{
                "indicadorFacturacion" => 4,
-               "unidadMedida" => "47",
+               "unidadMedida" => "43",
                "cantidadItem" => 4.0,
                "precioUnitarioItem" => 1000.0,
                "montoItem" => 4000.0
@@ -314,7 +426,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "indicadorNotaCredito" => "0",
              "indicadorMontoGravado" => 0,
              "tipoIngresos" => "01",
-             "tipoPago" => 1,
+             "tipoPago" => 2,
              "tablaFormasPago" => []
            }
 
@@ -338,7 +450,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert [
              %{
                "indicadorFacturacion" => 1,
-               "unidadMedida" => "31",
+               "unidadMedida" => "43",
                "cantidadItem" => 1.0,
                "precioUnitarioItem" => 1000.0,
                "montoItem" => 1000.0
@@ -379,7 +491,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "encf" => "E410000000001",
              "fechaVencimientoSecuencia" => "10-03-2026",
              "indicadorMontoGravado" => 0,
-             "tipoPago" => 1,
+             "tipoPago" => 2,
              "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 11800.0}]
            }
 
@@ -524,7 +636,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              %{
                "numeroLinea" => 1,
                "indicadorFacturacion" => 4,
-               "unidadMedida" => "15"
+               "unidadMedida" => "43"
              }
            ] = mapped["detallesItems"]
 
@@ -570,7 +682,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "fechaVencimientoSecuencia" => "10-03-2026",
              "indicadorMontoGravado" => 0,
              "tipoIngresos" => "01",
-             "tipoPago" => 1,
+             "tipoPago" => 2,
              "tablaFormasPago" => []
            }
 

@@ -31,7 +31,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "encabezado" => %{
         "version" => "1.0",
-        "idDoc" => build_id_doc_e32(opts),
+        "idDoc" => build_id_doc_e32(payload, opts),
         "emisor" => build_emisor(payload, company, municipio: "320301", provincia: "320000"),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
@@ -74,7 +74,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "encabezado" => %{
         "version" => "1.0",
-        "idDoc" => build_id_doc_e34(opts),
+        "idDoc" => build_id_doc_e34(payload, opts),
         "emisor" => build_emisor(payload, company, municipio: "010100", provincia: "010000"),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
@@ -233,22 +233,22 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "indicadorMontoGravado" => 1,
       "tipoIngresos" => "02",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
-          "formaPago" => 1,
+          "formaPago" => 2,
           "montoPago" => monto_total
         }
       ]
     }
   end
 
-  defp build_id_doc_e32(opts) do
+  defp build_id_doc_e32(payload, opts) do
     %{
       "tipoeCF" => 32,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "tipoIngresos" => "01",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => []
     }
   end
@@ -259,7 +259,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "tipoIngresos" => "01",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
           "formaPago" => 1,
@@ -269,14 +269,14 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_id_doc_e34(opts) do
+  defp build_id_doc_e34(payload, opts) do
     %{
       "tipoeCF" => 34,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "indicadorNotaCredito" => "0",
       "indicadorMontoGravado" => 0,
       "tipoIngresos" => "01",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => []
     }
   end
@@ -287,7 +287,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "indicadorMontoGravado" => 0,
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
           "formaPago" => 1,
@@ -312,7 +312,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "tipoIngresos" => "01",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
           "formaPago" => 2,
@@ -333,7 +333,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "indicadorMontoGravado" => 0,
       "tipoIngresos" => "01",
-      "tipoPago" => 1,
+      "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => []
     }
   end
@@ -344,7 +344,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
       "tipoIngresos" => "01",
-      "tipoPago" => 2,
+      "tipoPago" => tipo_pago(payload),
       "fechaLimitePago" =>
         format_date(
           value_from_keys(payload, ["fechaLimitePago", "fecha_limite_pago", "invoice_date_due"])
@@ -891,6 +891,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e41(payload) do
+    indicador_facturacion = payload_facturation_indicator(payload)
+
     itbis_retenido =
       numeric(value_from_keys(payload, ["totalITBISRetenido", "total_itbis_retenido"])) ||
         amount_tax(payload)
@@ -909,7 +911,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
-        "indicadorFacturacion" => 1,
+        "indicadorFacturacion" => indicador_facturacion,
         "retencion" => %{
           "indicadorAgenteRetencionoPercepcion" => 1,
           "montoITBISRetenido" =>
@@ -920,10 +922,10 @@ defmodule Edoc.Etaxcore.PayloadMapper do
               isr_retenido
         },
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => 2,
+        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
         "descripcionItem" => item_description(item),
         "cantidadItem" => quantity,
-        "unidadMedida" => value_as_string(item, ["unidadMedida", "unidad_medida"], "43"),
+        "unidadMedida" => "43",
         "tablaSubcantidad" => [],
         "precioUnitarioItem" => unit_price,
         "tablaSubDescuento" => [],
@@ -935,6 +937,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e45(payload) do
+    indicador_facturacion = payload_facturation_indicator(payload)
+
     payload
     |> invoice_items()
     |> Enum.with_index(1)
@@ -946,12 +950,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
-        "indicadorFacturacion" => 1,
+        "indicadorFacturacion" => indicador_facturacion,
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => 2,
+        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
         "descripcionItem" => item_description(item),
         "cantidadItem" => quantity,
-        "unidadMedida" => value_as_string(item, ["unidadMedida", "unidad_medida"], "43"),
+        "unidadMedida" => "43",
         "tablaSubcantidad" => [],
         "precioUnitarioItem" => unit_price,
         "tablaSubDescuento" => [],
@@ -976,9 +980,9 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "tablaCodigosItem" => build_tabla_codigos_item_e46(item),
         "indicadorFacturacion" => 3,
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => 1,
+        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 1),
         "cantidadItem" => quantity,
-        "unidadMedida" => value_as_string(item, ["unidadMedida", "unidad_medida"], "43"),
+        "unidadMedida" => "43",
         "tablaSubcantidad" => [],
         "precioUnitarioItem" => unit_price,
         "tablaSubDescuento" => [],
@@ -1014,9 +1018,9 @@ defmodule Edoc.Etaxcore.PayloadMapper do
               isr_retenido
         },
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => 2,
+        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
         "cantidadItem" => quantity,
-        "unidadMedida" => value_as_string(item, ["unidadMedida", "unidad_medida"], "43"),
+        "unidadMedida" => "43",
         "tablaSubcantidad" => [],
         "precioUnitarioItem" => unit_price,
         "tablaSubDescuento" => [],
@@ -1066,7 +1070,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp build_detalles_items(payload, opts \\ []) do
     indicador_facturacion = Keyword.get(opts, :indicador_facturacion)
-    unidad_medida = Keyword.get(opts, :unidad_medida, "31")
     indicador_bieno_servicio = Keyword.get(opts, :indicador_bieno_servicio, 1)
 
     payload
@@ -1080,11 +1083,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
-        "indicadorFacturacion" => indicador_facturacion || item_facturation_indicator(item),
+        "indicadorFacturacion" => indicador_facturacion || payload_facturation_indicator(payload),
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => indicador_bieno_servicio,
+        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, indicador_bieno_servicio),
         "cantidadItem" => quantity,
-        "unidadMedida" => unidad_medida,
+        "unidadMedida" => "43",
         "tablaSubcantidad" => [],
         "precioUnitarioItem" => unit_price,
         "tablaSubDescuento" => [],
@@ -1107,15 +1110,35 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp normalize_item(%{} = item), do: item
   defp normalize_item(_), do: %{}
 
-  defp item_facturation_indicator(%{} = item) do
-    has_taxes? =
-      item
-      |> payload_value("tax_ids")
-      |> List.wrap()
-      |> Enum.any?()
+  defp tipo_pago(payload) do
+    payment_term_id =
+      payload
+      |> payload_value("invoice_payment_term_id")
+      |> odoo_reference_id()
 
-    if has_taxes?, do: 1, else: 4
+    if payment_term_id == 1, do: 1, else: 2
   end
+
+  defp payload_facturation_indicator(payload) do
+    if zero_amount?(amount_tax(payload)), do: 4, else: 1
+  end
+
+  defp item_bieno_servicio_indicator(%{} = item, default) do
+    type =
+      item
+      |> value_from_keys(["type", "product_type", "detailed_type"])
+      |> string_or_empty()
+      |> String.trim()
+      |> String.downcase()
+
+    cond do
+      type == "service" -> 2
+      type == "" -> default
+      true -> 1
+    end
+  end
+
+  defp item_bieno_servicio_indicator(_item, default), do: default
 
   defp item_name(item) do
     (payload_value(item, "name") || tuple_label(payload_value(item, "product_id")) || "")
@@ -1167,7 +1190,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp amount_tax(payload) do
-    numeric(payload_value(payload, "amount_tax")) || tax_totals_value(payload, "tax_amount") || 0
+    numeric(value_from_keys(payload, ["amount_tax", "tax_amount"])) ||
+      tax_totals_value(payload, "tax_amount") || 0
   end
 
   defp amount_exempt(payload) do
@@ -1580,6 +1604,18 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp payload_value(%{} = payload, key) when is_binary(key), do: Map.get(payload, key)
   defp payload_value(_, _), do: nil
+
+  defp odoo_reference_id([id | _]) when is_integer(id), do: id
+  defp odoo_reference_id(id) when is_integer(id), do: id
+
+  defp odoo_reference_id(id) when is_binary(id) do
+    case Integer.parse(String.trim(id)) do
+      {parsed, ""} -> parsed
+      _ -> nil
+    end
+  end
+
+  defp odoo_reference_id(_), do: nil
 
   defp numeric(nil), do: nil
   defp numeric(value) when is_integer(value) or is_float(value), do: value

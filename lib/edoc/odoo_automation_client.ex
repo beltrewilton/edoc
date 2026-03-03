@@ -4,7 +4,7 @@ defmodule Edoc.OdooAutomationClient do
 
   Flow:
       alias Edoc.OdooAutomationClient,  as: Odoo
-      client = Odoo.new()
+      client = Odoo.new(company)
       uid = Odoo.authenticate!(client)
       field_id = Odoo.create_edoc_field(client, uid)
       Odoo.create_edoc_selection_values(client, uid, field_id)
@@ -30,6 +30,8 @@ defmodule Edoc.OdooAutomationClient do
   All calls that hit Odoo (XML-RPC /object) receive `uid` explicitly.
   """
 
+  alias Edoc.Accounts.Company
+
   defstruct [:url, :db, :user, :apikey]
 
   @type t :: %__MODULE__{
@@ -42,18 +44,18 @@ defmodule Edoc.OdooAutomationClient do
   @common_path "/xmlrpc/2/common"
   @object_path "/xmlrpc/2/object"
 
-  @url System.fetch_env!("ODOO_URL")
-  @db System.fetch_env!("ODOO_DB")
-  @user System.fetch_env!("ODOO_USER")
-  @apikey System.fetch_env!("ODOO_APIKEY")
-
   @automation_name "Automation-DGII-Gateway"
   @action_server_name "Send Webhook Notification (dgii-gw)"
   @target_model "account.move"
   @target_state "posted"
 
+  @spec new(Company.t()) :: t()
+  def new(%Company{} = company) do
+    new(company.odoo_url, company.odoo_db, company.odoo_user, company.odoo_apikey)
+  end
+
   @spec new(String.t(), String.t(), String.t(), String.t()) :: t()
-  def new(url \\ @url, db \\ @db, user \\ @user, apikey \\ @apikey) do
+  def new(url, db, user, apikey) do
     %__MODULE__{
       url: String.trim_trailing(url, "/"),
       db: db,
@@ -269,6 +271,7 @@ defmodule Edoc.OdooAutomationClient do
       "tax_totals",
       "transaction_ids",
       "reversed_entry_id",
+      "invoice_payment_term_id",
       "x_studio_e_doc_inv",
       "x_studio_e_doc_bill"
     ]
@@ -797,6 +800,7 @@ defmodule Edoc.OdooAutomationClient do
               "name",
               "account_id",
               "product_id",
+              "type",
               "quantity",
               "price_unit",
               "discount",
@@ -806,6 +810,14 @@ defmodule Edoc.OdooAutomationClient do
               "tax_ids"
             ]
 
+        include_product_type? = Enum.member?(line_fields, "type")
+        include_product_id? = Enum.member?(line_fields, "product_id")
+
+        read_line_fields =
+          line_fields
+          |> Enum.reject(&(&1 == "type"))
+          |> maybe_add_field("product_id", include_product_type? and not include_product_id?)
+
         lines =
           execute_kw!(
             client,
@@ -813,12 +825,115 @@ defmodule Edoc.OdooAutomationClient do
             "account.move.line",
             "search_read",
             [[["move_id", "=", invoice_id]]],
-            %{fields: line_fields}
+            %{fields: read_line_fields}
           )
+          |> maybe_enrich_lines_with_product_type(client, uid, include_product_type?)
+          |> maybe_drop_field("product_id", include_product_type? and not include_product_id?)
 
         %{invoice: invoice, lines: lines}
     end
   end
+
+  defp maybe_enrich_lines_with_product_type(lines, _client, _uid, false), do: lines
+  defp maybe_enrich_lines_with_product_type([], _client, _uid, true), do: []
+
+  defp maybe_enrich_lines_with_product_type(lines, %__MODULE__{} = client, uid, true) do
+    product_type_by_id = product_type_by_product_id(client, uid, lines)
+
+    Enum.map(lines, fn line ->
+      product_type =
+        line
+        |> Map.get("product_id")
+        |> many2one_id()
+        |> then(&Map.get(product_type_by_id, &1))
+
+      Map.put(line, "type", product_type)
+    end)
+  end
+
+  defp product_type_by_product_id(%__MODULE__{} = client, uid, lines) do
+    product_ids =
+      lines
+      |> Enum.map(&Map.get(&1, "product_id"))
+      |> Enum.map(&many2one_id/1)
+      |> Enum.reject(&is_nil/1)
+      |> Enum.uniq()
+
+    case product_ids do
+      [] ->
+        %{}
+
+      _ ->
+        products =
+          execute_kw!(
+            client,
+            uid,
+            "product.product",
+            "read",
+            [product_ids],
+            %{fields: ["id", "product_tmpl_id"]}
+          )
+
+        template_ids =
+          products
+          |> Enum.map(&Map.get(&1, "product_tmpl_id"))
+          |> Enum.map(&many2one_id/1)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.uniq()
+
+        template_type_by_id =
+          case template_ids do
+            [] ->
+              %{}
+
+            _ ->
+              execute_kw!(
+                client,
+                uid,
+                "product.template",
+                "read",
+                [template_ids],
+                %{fields: ["id", "type"]}
+              )
+              |> Map.new(fn template ->
+                {Map.get(template, "id"), Map.get(template, "type")}
+              end)
+          end
+
+        Enum.reduce(products, %{}, fn product, acc ->
+          product_id = Map.get(product, "id")
+
+          template_id =
+            product
+            |> Map.get("product_tmpl_id")
+            |> many2one_id()
+
+          case {product_id, template_id} do
+            {id, tmpl_id} when is_integer(id) and is_integer(tmpl_id) ->
+              Map.put(acc, id, Map.get(template_type_by_id, tmpl_id))
+
+            _ ->
+              acc
+          end
+        end)
+    end
+  end
+
+  defp maybe_add_field(fields, field, true) do
+    if Enum.member?(fields, field), do: fields, else: [field | fields]
+  end
+
+  defp maybe_add_field(fields, _field, false), do: fields
+
+  defp maybe_drop_field(lines, field, true) do
+    Enum.map(lines, &Map.delete(&1, field))
+  end
+
+  defp maybe_drop_field(lines, _field, false), do: lines
+
+  defp many2one_id([id | _]) when is_integer(id), do: id
+  defp many2one_id(id) when is_integer(id), do: id
+  defp many2one_id(_), do: nil
 
   @doc """
   Retrieve partner (res.partner) data by ID.
