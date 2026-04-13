@@ -2,18 +2,14 @@ defmodule Edoc.EtaxcoreClient do
   @moduledoc """
   Thin eTaxCore HTTP client.
 
-  * Sends a JSON payload to the configured eTaxCore endpoint.
-  * Returns the decoded JSON response as a map.
-test9-flovelz.
-  Environment variables:
+  Sends a JSON payload to the provider endpoint configured for a company and
+  returns the decoded JSON response as a map.
 
-    * `ETAXCORE_ENDPOINT` – full URL of the eTaxCore endpoint
-    * `ETAXCORE_API_KEY`  – API key sent as the `api-key` header
-
-  This module **does not** validate request or response shapes.
-  You are responsible for building a valid payload and interpreting
-  the response.
+  This module does not validate request or response shapes. Callers are
+  responsible for building valid payloads and interpreting the response.
   """
+
+  alias Edoc.Accounts.Company
 
   require Logger
 
@@ -21,65 +17,86 @@ test9-flovelz.
   @type response_body :: map()
 
   @doc """
-  Sends the given `payload` (a map) as JSON to eTaxCore.
+  Sends the given `payload` (a map) as JSON to the company's configured
+  provider endpoint.
 
   Returns:
 
-    * `{:ok, response_body}`  on HTTP 2xx
+    * `{:ok, response_body}` on HTTP 2xx
     * `{:error, {:http_error, status, body}}` on non-2xx
-    * `{:error, exception}`   on transport error
+    * `{:error, {:missing_provider_config, field}}` when the company is missing
+      provider credentials
+    * `{:error, exception}` on transport error
   """
-  @spec send_invoice(request_body()) ::
+  @spec send_invoice(request_body(), Company.t()) ::
           {:ok, response_body()} | {:error, term()}
-  def send_invoice(payload) when is_map(payload) do
-    post(payload)
+  def send_invoice(payload, %Company{} = company) when is_map(payload) do
+    post(payload, company)
   end
 
   @doc """
-  Same as `send_invoice/1` but raises on error.
+  Same as `send_invoice/2` but raises on error.
   """
-  @spec send_invoice!(request_body()) :: response_body()
-  def send_invoice!(payload) when is_map(payload) do
-    case send_invoice(payload) do
+  @spec send_invoice!(request_body(), Company.t()) :: response_body()
+  def send_invoice!(payload, %Company{} = company) when is_map(payload) do
+    case send_invoice(payload, company) do
       {:ok, resp} ->
         resp
 
       {:error, {:http_error, status, body}} ->
         raise "eTaxCore HTTP error (status #{status}): #{inspect(body)}"
 
+      {:error, {:missing_provider_config, field}} ->
+        raise "eTaxCore provider configuration missing: #{field}"
+
       {:error, exception} ->
         raise "eTaxCore request failed: #{inspect(exception)}"
     end
   end
 
-  ## Internal HTTP call
+  defp post(payload, %Company{} = company) when is_map(payload) do
+    with {:ok, url} <- fetch_provider_value(company, :provider_endpoint),
+         {:ok, api_key} <- fetch_provider_value(company, :provider_apikey) do
+      req =
+        Req.new(
+          method: :post,
+          url: url,
+          headers: [
+            {"content-type", "application/json"},
+            {"accept", "application/json"},
+            {"api-key", api_key}
+          ],
+          json: payload
+        )
 
-  defp post(payload) when is_map(payload) do
-    url = System.fetch_env!("ETAXCORE_ENDPOINT")
-    api_key = System.fetch_env!("ETAXCORE_API_KEY")
+      case Req.request(req) do
+        {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
+          {:ok, body}
 
-    req =
-      Req.new(
-        url: url,
-        headers: [
-          {"content-type", "application/json"},
-          {"accept", "application/json"},
-          {"api-key", api_key}
-        ],
-        json: payload
-      )
+        {:ok, %Req.Response{status: status, body: body}} ->
+          Logger.warning("eTaxCore non-2xx response (#{status}): #{inspect(body)}")
+          {:error, {:http_error, status, body}}
 
-    case Req.request(req) do
-      {:ok, %Req.Response{status: status, body: body}} when status in 200..299 ->
-        {:ok, body}
+        {:error, exception} ->
+          Logger.error("eTaxCore HTTP error: #{inspect(exception)}")
+          {:error, exception}
+      end
+    end
+  end
 
-      {:ok, %Req.Response{status: status, body: body}} ->
-        Logger.warning("eTaxCore non-2xx response (#{status}): #{inspect(body)}")
-        {:error, {:http_error, status, body}}
+  defp fetch_provider_value(%Company{} = company, field) do
+    case Map.get(company, field) do
+      value when is_binary(value) ->
+        trimmed_value = String.trim(value)
 
-      {:error, exception} ->
-        Logger.error("eTaxCore HTTP error: #{inspect(exception)}")
-        {:error, exception}
+        if byte_size(trimmed_value) > 0 do
+          {:ok, trimmed_value}
+        else
+          {:error, {:missing_provider_config, field}}
+        end
+
+      _ ->
+        {:error, {:missing_provider_config, field}}
     end
   end
 end

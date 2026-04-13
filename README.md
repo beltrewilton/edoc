@@ -1,18 +1,9 @@
 # Edoc
 
-To start your Phoenix server:
+Bureaucracy, assembled with Phoenix sass. Boot it with `mix setup`, fire the thrusters via `mix phx.server`, then high-five your browser at [localhost:4000](http://localhost:4000).
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Production dreams? Consult the Phoenix deployment guides before summoning the ops gremlins.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+Need inspiration or an excuse to scroll? Hit the Phoenix docs, guides, forums, and source—pretend it’s research.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Now stop reading README files and go ship something mischievously useful.

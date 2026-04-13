@@ -71,7 +71,8 @@ defmodule Edoc.MixProject do
       {:xmlrpc, "~> 1.4"},
       {:corsica, "~> 2.1"},
       {:finch, "~> 0.20"},
-      {:oauth2, "~> 2.1"}
+      {:oauth2, "~> 2.1"},
+      {:floki, "~> 0.38.1"}
     ]
   end
 

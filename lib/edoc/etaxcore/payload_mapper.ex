@@ -5,6 +5,35 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   alias Edoc.Accounts.Company
 
+  @fecha_vencimiento_secuencia "31-12-2028" #TODO: this is on QA
+  @currency_fields MapSet.new([
+                     "montoPago",
+                     "montoGravadoTotal",
+                     "montoGravadoI1",
+                     "montoGravadoI3",
+                     "totalITBIS",
+                     "totalITBIS1",
+                     "totalITBIS3",
+                     "montoTotal",
+                     "montoExento",
+                     "valorPagar",
+                     "totalITBISRetenido",
+                     "totalISRRetencion",
+                     "tipoCambio",
+                     "montoExentoOtraMoneda",
+                     "montoTotalOtraMoneda",
+                     "valorDescuentooRecargo",
+                     "montoDescuentooRecargo",
+                     "subTotalExento",
+                     "montoSubTotal",
+                     "montoITBISRetenido",
+                     "montoISRRetenido",
+                     "precioUnitarioItem",
+                     "montoItem",
+                     "precioOtraMoneda",
+                     "montoItemOtraMoneda"
+                   ])
+
   @spec map_e31(map(), Company.t(), keyword()) :: map()
   def map_e31(payload, %Company{} = company, opts \\ []) when is_map(payload) do
     monto_total = amount_total(payload)
@@ -12,7 +41,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "encabezado" => %{
         "version" => "1.0",
-        "idDoc" => build_id_doc_e31(payload, monto_total, opts),
+        "idDoc" => build_id_doc_e31(payload, monto_total, 31, opts),
         "emisor" => build_emisor(payload, company),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
@@ -24,26 +53,28 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e32(map(), Company.t(), keyword()) :: map()
   def map_e32(payload, %Company{} = company, opts \\ []) when is_map(payload) do
+    monto_total = amount_total(payload)
     %{
       "encabezado" => %{
         "version" => "1.0",
-        "idDoc" => build_id_doc_e32(payload, opts),
-        "emisor" => build_emisor(payload, company, municipio: "320301", provincia: "320000"),
+        "idDoc" => build_id_doc_e31(payload, monto_total, 32, opts),
+        "emisor" => build_emisor(payload, company),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
-        "totales" => build_totales_e32(payload)
+        "totales" => build_totales_e31(payload)
       },
-      "detallesItems" =>
-        build_detalles_items(payload, indicador_facturacion: 4, unidad_medida: "47"),
+      "detallesItems" => build_detalles_items(payload),
       "subtotales" => [],
       "descuentosORecargos" => [],
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e33(map(), Company.t(), keyword()) :: map()
@@ -54,7 +85,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e33(payload, monto_total, opts),
-        "emisor" => build_emisor(payload, company, municipio: "010100", provincia: "010000"),
+        "emisor" => build_emisor(payload, company),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
         "totales" => build_totales_e32(payload)
@@ -67,6 +98,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "informacionReferencia" => build_informacion_referencia_e33(payload),
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e34(map(), Company.t(), keyword()) :: map()
@@ -75,7 +107,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e34(payload, opts),
-        "emisor" => build_emisor(payload, company, municipio: "010100", provincia: "010000"),
+        "emisor" => build_emisor(payload, company),
         "comprador" => build_comprador(payload),
         "informacionesAdicionales" => build_informaciones_adicionales(payload),
         "totales" => build_totales_e31(payload)
@@ -87,6 +119,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "informacionReferencia" => build_informacion_referencia_e34(payload),
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e41(map(), Company.t(), keyword()) :: map()
@@ -105,6 +138,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e43(map(), Company.t(), keyword()) :: map()
@@ -128,6 +162,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e44(map(), Company.t(), keyword()) :: map()
@@ -150,6 +185,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e45(map(), Company.t(), keyword()) :: map()
@@ -169,6 +205,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e46(map(), Company.t(), keyword()) :: map()
@@ -189,6 +226,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_e47(map(), Company.t(), keyword()) :: map()
@@ -208,6 +246,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> normalize_currency_fields()
   end
 
   @spec map_invoice(map(), Company.t(), keyword()) :: map()
@@ -226,13 +265,13 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     end
   end
 
-  defp build_id_doc_e31(payload, monto_total, opts) do
+  defp build_id_doc_e31(payload, monto_total, tipoeCF, opts) do
     %{
-      "tipoeCF" => 31,
+      "tipoeCF" => tipoeCF,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
-      "indicadorMontoGravado" => 1,
-      "tipoIngresos" => "02",
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
+      "indicadorMontoGravado" => 0,
+      "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
@@ -257,12 +296,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 33,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
-          "formaPago" => 1,
+          "formaPago" => 2,
           "montoPago" => monto_total
         }
       ]
@@ -285,12 +324,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 41,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "indicadorMontoGravado" => 0,
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
-          "formaPago" => 1,
+          "formaPago" => 2,
           "montoPago" => amount_total(payload)
         }
       ]
@@ -301,7 +340,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 43,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tablaFormasPago" => []
     }
   end
@@ -310,7 +349,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 44,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
@@ -330,7 +369,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 45,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "indicadorMontoGravado" => 0,
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
@@ -342,7 +381,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 46,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "fechaLimitePago" =>
@@ -363,7 +402,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "tipoeCF" => 47,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "fechaVencimientoSecuencia" => format_date(payload_value(payload, "invoice_date_due")),
+      "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tablaFormasPago" => [],
       "numeroCuentaPago" =>
         value_as_string(payload, ["numeroCuentaPago", "numero_cuenta_pago"], ""),
@@ -371,10 +410,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_emisor(payload, %Company{} = company, opts \\ []) do
-    municipio = Keyword.get(opts, :municipio, "010101")
-    provincia = Keyword.get(opts, :provincia, "010000")
-
+  defp build_emisor(payload, %Company{} = company) do
     %{
       "rncEmisor" =>
         rnc_or_empty(
@@ -389,21 +425,20 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           company_field(company, :company_name)
         ),
       "direccionEmisor" =>
-        string_or_empty(
-          company_address(company)
+        value_or_default(
+          company_address(company),
+          "NA"
         ),
-      "municipio" => municipio,
-      "provincia" => provincia,
       "tablaTelefonoEmisor" => company_phone_list(company),
       "correoEmisor" => string_or_empty(company_email(company)),
       "webSite" => string_or_empty(company_website(company)),
       "codigoVendedor" => string_or_empty(company_field(company, :codigo_vendedor)),
       "numeroFacturaInterna" => string_or_empty(payload_value(payload, "payment_reference")),
-      "numeroPedidoInterno" =>
-        string_or_empty(
-          payload_value(payload, "invoice_origin") ||
-            payload_value(payload, "payment_reference") || payload_value(payload, "name")
-        ),
+      # "numeroPedidoInterno" =>
+      #   string_or_empty(
+      #     payload_value(payload, "invoice_origin") ||
+      #       payload_value(payload, "payment_reference") || payload_value(payload, "name")
+      #   ),
       "zonaVenta" => string_or_empty(payload_value(payload, "zona_venta")),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
@@ -505,12 +540,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
             Map.get(comprador, "razonSocialComprador")
         ),
       "direccionEmisor" =>
-        string_or_empty(
+        value_or_default(
           value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
-            Map.get(comprador, "direccionComprador")
+            Map.get(comprador, "direccionComprador"),
+          "NA"
         ),
-      "municipio" => value_or_default(Map.get(comprador, "municipioComprador"), "010101"),
-      "provincia" => value_or_default(Map.get(comprador, "provinciaComprador"), "010000"),
       "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
@@ -540,12 +574,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           ]) || Map.get(comprador, "razonSocialComprador")
         ),
       "direccionEmisor" =>
-        string_or_empty(
+        value_or_default(
           value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
-            Map.get(comprador, "direccionComprador")
+            Map.get(comprador, "direccionComprador"),
+          "NA"
         ),
-      "municipio" => value_or_default(Map.get(comprador, "municipioComprador"), "010101"),
-      "provincia" => value_or_default(Map.get(comprador, "provinciaComprador"), "010000"),
       "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
       "correoEmisor" =>
         string_or_empty(
@@ -571,8 +604,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "razonSocialEmisor",
       "nombreComercial",
       "direccionEmisor",
-      "municipio",
-      "provincia",
       "tablaTelefonoEmisor",
       "correoEmisor",
       "webSite",
@@ -591,8 +622,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "razonSocialEmisor",
       "nombreComercial",
       "direccionEmisor",
-      "municipio",
-      "provincia",
       "tablaTelefonoEmisor",
       "correoEmisor",
       "webSite",
@@ -1116,7 +1145,21 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       |> payload_value("invoice_payment_term_id")
       |> odoo_reference_id()
 
-    if payment_term_id == 1, do: 1, else: 2
+    invoice_date =
+      payload
+      |> payload_value("invoice_date")
+      |> format_date()
+
+    invoice_date_due =
+      payload
+      |> payload_value("invoice_date_due")
+      |> format_date()
+
+    if invoice_date != "" and invoice_date_due != "" do
+      if invoice_date_due == invoice_date, do: 1, else: 2
+    else
+      if payment_term_id == 1, do: 1, else: 2
+    end
   end
 
   defp payload_facturation_indicator(payload) do
@@ -1583,6 +1626,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
     case digits do
       "" -> nil
+      <<"0", _::binary>> = number -> number
       number -> String.to_integer(number)
     end
   end
@@ -1705,6 +1749,51 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp format_datetime(_), do: ""
+
+  defp normalize_currency_fields(%{} = payload) do
+    Map.new(payload, fn {key, value} ->
+      normalized_value =
+        if currency_field?(key) do
+          format_currency(value)
+        else
+          normalize_currency_fields(value)
+        end
+
+      {key, normalized_value}
+    end)
+  end
+
+  defp normalize_currency_fields(value) when is_list(value) do
+    Enum.map(value, &normalize_currency_fields/1)
+  end
+
+  defp normalize_currency_fields(value), do: value
+
+  defp currency_field?(key) when is_binary(key), do: MapSet.member?(@currency_fields, key)
+  defp currency_field?(_key), do: false
+
+  defp format_currency(value) do
+    case Decimal.cast(value) do
+      {:ok, decimal} ->
+        decimal
+        |> Decimal.round(2, :down)
+        |> Decimal.to_string(:normal)
+        |> pad_currency_decimals()
+
+      :error ->
+        value
+    end
+  end
+
+  defp pad_currency_decimals(value) do
+    case String.split(value, ".", parts: 2) do
+      [whole, fraction] ->
+        "#{whole}.#{String.pad_trailing(String.slice(fraction, 0, 2), 2, "0")}"
+
+      [whole] ->
+        "#{whole}.00"
+    end
+  end
 
   defp string_or_empty(nil), do: ""
   defp string_or_empty(false), do: ""

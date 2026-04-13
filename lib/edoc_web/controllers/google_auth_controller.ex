@@ -71,6 +71,8 @@ defmodule EdocWeb.GoogleAuthController do
   end
 
   defp google_redirect_uri do
-    "https://12a0-2001-1308-1cfe-6e00-bd31-b5-b1c3-49dc.ngrok-free.app/auth/google/callback"
+    System.fetch_env!("WEBHOOK_URL")
+    |> String.trim_trailing("/")
+    |> Kernel.<>("/auth/google/callback")
   end
 end

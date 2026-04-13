@@ -117,6 +117,9 @@ defmodule Edoc.AccountsFixtures do
     default_attrs = %{
       "company_name" => "Acme #{System.unique_integer([:positive])}",
       "rnc" => "RNC#{System.unique_integer([:positive])}",
+      "provider_endpoint" =>
+        "https://provider.example.com/#{System.unique_integer([:positive])}/e-docs",
+      "provider_apikey" => "provider-key-#{System.unique_integer([:positive])}",
       "odoo_url" => "https://odoo.example.com/#{System.unique_integer([:positive])}",
       "odoo_db" => "db_#{System.unique_integer([:positive])}",
       "odoo_user" => "user#{System.unique_integer([:positive])}@example.com",

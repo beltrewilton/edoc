@@ -4,6 +4,24 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
   alias Edoc.Accounts.Company
   alias Edoc.Etaxcore.PayloadMapper
 
+  defp money(value) do
+    {:ok, decimal} = Decimal.cast(value)
+
+    decimal
+    |> Decimal.round(2, :down)
+    |> Decimal.to_string(:normal)
+    |> case do
+      normalized when is_binary(normalized) ->
+        case String.split(normalized, ".", parts: 2) do
+          [whole, fraction] ->
+            "#{whole}.#{String.pad_trailing(String.slice(fraction, 0, 2), 2, "0")}"
+
+          [whole] ->
+            "#{whole}.00"
+        end
+    end
+  end
+
   test "maps E31 odoo payload into the target etax shape" do
     payload = %{
       "_id" => 11_287,
@@ -69,7 +87,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["tipoPago"] == 2
 
     assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
-             %{"formaPago" => 1, "montoPago" => 3009.0}
+             %{"formaPago" => 1, "montoPago" => money(3009.0)}
            ]
 
     assert mapped["encabezado"]["emisor"]["rncEmisor"] == 123456789
@@ -83,13 +101,13 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["informacionesAdicionales"]["numeroReferencia"] == 11_287
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => 2550.0,
-             "montoGravadoI1" => 2550.0,
+             "montoGravadoTotal" => money(2550.0),
+             "montoGravadoI1" => money(2550.0),
              "itbis1" => 18,
-             "totalITBIS" => 459.0,
-             "totalITBIS1" => 459.0,
+             "totalITBIS" => money(459.0),
+             "totalITBIS1" => money(459.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 3009.0
+             "montoTotal" => money(3009.0)
            }
 
     assert [
@@ -99,8 +117,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "nombreItem" => "Botas de Trabajo de Almacen Trugard",
                "unidadMedida" => "43",
                "cantidadItem" => 1.0,
-               "precioUnitarioItem" => 2550.0,
-               "montoItem" => 2550.0
+               "precioUnitarioItem" => money(2550.0),
+               "montoItem" => money(2550.0)
              } = item
            ] = mapped["detallesItems"]
 
@@ -166,9 +184,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["emisor"]["provincia"] == "320000"
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => 3000.0,
+             "montoExento" => money(3000.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 3000.0
+             "montoTotal" => money(3000.0)
            }
 
     assert [
@@ -178,8 +196,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "nombreItem" => "Articulo Exento",
                "unidadMedida" => "43",
                "cantidadItem" => 3.0,
-               "precioUnitarioItem" => 1000.0,
-               "montoItem" => 3000.0
+               "precioUnitarioItem" => money(1000.0),
+               "montoItem" => money(3000.0)
              } = item
            ] = mapped["detallesItems"]
 
@@ -188,6 +206,43 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert item["tablaSubDescuento"] == []
     assert item["tablaSubRecargo"] == []
     assert item["tablaImpuestoAdicional"] == []
+  end
+
+  test "formats currency fields with exactly two decimal places" do
+    payload = %{
+      "_id" => 22_288,
+      "amount_tax" => 0.0,
+      "amount_total" => 1.234,
+      "amount_untaxed" => 1.234,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "invoice_partner_display_name" => "Consumidor Final",
+      "payment_reference" => "INV/2026/02/0100",
+      "x_studio_e_doc_inv" => "E32",
+      "invoice_items" => [
+        %{
+          "name" => "Articulo Exento",
+          "price_subtotal" => 1.234,
+          "price_unit" => 1.2,
+          "quantity" => 1.0,
+          "tax_ids" => []
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    mapped = PayloadMapper.map_e32(payload, company, e_doc: "E320000000002")
+
+    assert mapped["encabezado"]["totales"]["montoExento"] == "1.23"
+    assert mapped["encabezado"]["totales"]["montoTotal"] == "1.23"
+
+    assert [
+             %{
+               "precioUnitarioItem" => "1.20",
+               "montoItem" => "1.23"
+             }
+           ] = mapped["detallesItems"]
   end
 
   test "maps tipoPago from invoice_payment_term_id" do
@@ -343,16 +398,16 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "fechaVencimientoSecuencia" => "15-03-2026",
              "tipoIngresos" => "01",
              "tipoPago" => 2,
-             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 4000.0}]
+             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => money(4000.0)}]
            }
 
     assert mapped["encabezado"]["emisor"]["municipio"] == "010100"
     assert mapped["encabezado"]["emisor"]["provincia"] == "010000"
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => 4000.0,
+             "montoExento" => money(4000.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 4000.0
+             "montoTotal" => money(4000.0)
            }
 
     assert mapped["informacionReferencia"] == %{
@@ -366,8 +421,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "indicadorFacturacion" => 4,
                "unidadMedida" => "43",
                "cantidadItem" => 4.0,
-               "precioUnitarioItem" => 1000.0,
-               "montoItem" => 4000.0
+               "precioUnitarioItem" => money(1000.0),
+               "montoItem" => money(4000.0)
              }
            ] = mapped["detallesItems"]
   end
@@ -431,13 +486,13 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => 1000.0,
-             "montoGravadoI1" => 1000.0,
+             "montoGravadoTotal" => money(1000.0),
+             "montoGravadoI1" => money(1000.0),
              "itbis1" => 18,
-             "totalITBIS" => 180.0,
-             "totalITBIS1" => 180.0,
+             "totalITBIS" => money(180.0),
+             "totalITBIS1" => money(180.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 1180.0
+             "montoTotal" => money(1180.0)
            }
 
     assert mapped["informacionReferencia"] == %{
@@ -452,8 +507,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "indicadorFacturacion" => 1,
                "unidadMedida" => "43",
                "cantidadItem" => 1.0,
-               "precioUnitarioItem" => 1000.0,
-               "montoItem" => 1000.0
+               "precioUnitarioItem" => money(1000.0),
+               "montoItem" => money(1000.0)
              }
            ] = mapped["detallesItems"]
   end
@@ -492,20 +547,20 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "fechaVencimientoSecuencia" => "10-03-2026",
              "indicadorMontoGravado" => 0,
              "tipoPago" => 2,
-             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => 11800.0}]
+             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => money(11800.0)}]
            }
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => 10000.0,
-             "montoGravadoI1" => 10000.0,
+             "montoGravadoTotal" => money(10000.0),
+             "montoGravadoI1" => money(10000.0),
              "itbis1" => 18,
-             "totalITBIS" => 1800.0,
-             "totalITBIS1" => 1800.0,
+             "totalITBIS" => money(1800.0),
+             "totalITBIS1" => money(1800.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 11800.0,
-             "valorPagar" => 11800.0,
-             "totalITBISRetenido" => 1800.0,
-             "totalISRRetencion" => 1000.0
+             "montoTotal" => money(11800.0),
+             "valorPagar" => money(11800.0),
+             "totalITBISRetenido" => money(1800.0),
+             "totalISRRetencion" => money(1000.0)
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
@@ -518,11 +573,11 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "indicadorFacturacion" => 1,
                "indicadorBienoServicio" => 2,
                "unidadMedida" => "43",
-               "montoItem" => 10000.0,
+               "montoItem" => money(10000.0),
                "retencion" => %{
                  "indicadorAgenteRetencionoPercepcion" => 1,
-                 "montoITBISRetenido" => 1800.0,
-                 "montoISRRetenido" => 1000.0
+                 "montoITBISRetenido" => money(1800.0),
+                 "montoISRRetenido" => money(1000.0)
                }
              }
            ] = mapped["detallesItems"]
@@ -564,9 +619,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["comprador"]["rncComprador"] == 123456789
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => 700.0,
+             "montoExento" => money(700.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 700.0
+             "montoTotal" => money(700.0)
            }
 
     assert [
@@ -575,7 +630,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "indicadorBienoServicio" => 2,
                "unidadMedida" => "43",
                "cantidadItem" => 7.0,
-               "montoItem" => 700.0
+               "montoItem" => money(700.0)
              }
            ] = mapped["detallesItems"]
   end
@@ -618,7 +673,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["tipoeCF"] == 44
 
     assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
-             %{"formaPago" => 2, "montoPago" => 248_292.0}
+             %{"formaPago" => 2, "montoPago" => money(248_292.0)}
            ]
 
     assert mapped["encabezado"]["idDoc"]["tipoCuentaPago"] == "CT"
@@ -626,10 +681,10 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["bancoPago"] == "BANCO XDRFT"
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => 248_292.0,
+             "montoExento" => money(248_292.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 248_292.0,
-             "valorPagar" => 248_292.0
+             "montoTotal" => money(248_292.0),
+             "valorPagar" => money(248_292.0)
            }
 
     assert [
@@ -646,8 +701,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "tipoAjuste" => "D",
                "descripcionDescuentooRecargo" => "DESCUENTO ADMINISTRATIVO",
                "tipoValor" => "%",
-               "valorDescuentooRecargo" => 10.0,
-               "montoDescuentooRecargo" => 27_588.0,
+               "valorDescuentooRecargo" => money(10.0),
+               "montoDescuentooRecargo" => money(27_588.0),
                "indicadorFacturacionDescuentooRecargo" => 4
              }
            ]
@@ -687,14 +742,14 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => 30_000.0,
-             "montoGravadoI1" => 30_000.0,
+             "montoGravadoTotal" => money(30_000.0),
+             "montoGravadoI1" => money(30_000.0),
              "itbis1" => 18,
-             "totalITBIS" => 5400.0,
-             "totalITBIS1" => 5400.0,
+             "totalITBIS" => money(5400.0),
+             "totalITBIS1" => money(5400.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 35_400.0,
-             "valorPagar" => 35_400.0
+             "montoTotal" => money(35_400.0),
+             "valorPagar" => money(35_400.0)
            }
 
     assert [
@@ -753,7 +808,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["terminoPago"] == "1 mes"
 
     assert mapped["encabezado"]["idDoc"]["tablaFormasPago"] == [
-             %{"formaPago" => 2, "montoPago" => 1_800_000.0}
+             %{"formaPago" => 2, "montoPago" => money(1_800_000.0)}
            ]
 
     assert mapped["encabezado"]["transporte"] == %{"numeroAlbaran" => "56789UJILLL"}
@@ -764,13 +819,13 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["informacionesAdicionales"]["pesoBruto"] == 25_000.0
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => 1_800_000.0,
-             "montoGravadoI3" => 1_800_000.0,
+             "montoGravadoTotal" => money(1_800_000.0),
+             "montoGravadoI3" => money(1_800_000.0),
              "itbis3" => 0,
-             "totalITBIS" => 0,
-             "totalITBIS3" => 0,
+             "totalITBIS" => money(0),
+             "totalITBIS3" => money(0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 1_800_000.0
+             "montoTotal" => money(1_800_000.0)
            }
 
     assert [
@@ -829,18 +884,18 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => 180_000.0,
+             "montoExento" => money(180_000.0),
              "impuestosAdicionales" => [],
-             "montoTotal" => 180_000.0,
-             "totalISRRetencion" => 48_600.0
+             "montoTotal" => money(180_000.0),
+             "totalISRRetencion" => money(48_600.0)
            }
 
     assert mapped["encabezado"]["otraMoneda"] == %{
              "tipoMoneda" => "USD",
-             "tipoCambio" => 60.0,
-             "montoExentoOtraMoneda" => 3000.0,
+             "tipoCambio" => money(60.0),
+             "montoExentoOtraMoneda" => money(3000.0),
              "impuestosAdicionalesOtraMoneda" => [],
-             "montoTotalOtraMoneda" => 3000.0
+             "montoTotalOtraMoneda" => money(3000.0)
            }
 
     assert [
@@ -849,11 +904,11 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "unidadMedida" => "43",
                "retencion" => %{
                  "indicadorAgenteRetencionoPercepcion" => 1,
-                 "montoISRRetenido" => 48_600.0
+                 "montoISRRetenido" => money(48_600.0)
                },
                "otraMonedaDetalle" => %{
-                 "precioOtraMoneda" => 3000.0,
-                 "montoItemOtraMoneda" => 3000.0
+                 "precioOtraMoneda" => money(3000.0),
+                 "montoItemOtraMoneda" => money(3000.0)
                }
              }
            ] = mapped["detallesItems"]
@@ -863,8 +918,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "numeroSubTotal" => 1,
                "descripcionSubtotal" => "N/A",
                "orden" => 1,
-               "subTotalExento" => 180_000.0,
-               "montoSubTotal" => 180_000.0,
+               "subTotalExento" => money(180_000.0),
+               "montoSubTotal" => money(180_000.0),
                "lineas" => 1
              }
            ]

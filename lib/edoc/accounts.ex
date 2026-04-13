@@ -487,7 +487,6 @@ defmodule Edoc.Accounts do
   """
   def create_company(%Scope{user: %User{} = user}, attrs) when is_map(attrs) do
     tenant = TenantContext.get_tenant()
-    IO.inspect(tenant, label: "Company tenant? ")
 
     %Company{}
     |> Company.changeset(attrs)
@@ -496,6 +495,22 @@ defmodule Edoc.Accounts do
   end
 
   def create_company(_scope, _attrs), do: {:error, :unauthorized}
+
+  @doc """
+  Updates a company in the current tenant.
+
+  The caller is responsible for passing a company already authorized for the
+  current scope, typically via `get_company_for_scope!/2`.
+  """
+  def update_company(%Scope{user: %User{}}, %Company{} = company, attrs) when is_map(attrs) do
+    tenant = TenantContext.get_tenant()
+
+    company
+    |> Company.changeset(attrs)
+    |> Repo.update(prefix: tenant)
+  end
+
+  def update_company(_, _, _), do: {:error, :unauthorized}
 
   @doc """
   Lists companies for the current user in the current tenant.

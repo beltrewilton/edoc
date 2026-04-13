@@ -60,7 +60,8 @@ defmodule EdocWeb.CompanyTransactionsLive do
      socket
      |> assign(:raw_json_payloads, %{
        odoo_request: Map.get(params, "odoo_request_payload") || "No payload yet",
-       provider_request: Map.get(params, "provider_request_payload") || "No payload yet"
+       provider_request: Map.get(params, "provider_request_payload") || "No payload yet",
+       provider_response: Map.get(params, "provider_response_payload") || "No payload yet"
      })
      |> assign(:raw_json_tab, :odoo_request)
      |> assign(:raw_json_edoc, Map.get(params, "edoc"))
@@ -243,6 +244,8 @@ defmodule EdocWeb.CompanyTransactionsLive do
                             odoo_request_payload: transaction_payload(transaction, :odoo_request),
                             provider_request_payload:
                               transaction_payload(transaction, :provider_request),
+                            provider_response_payload:
+                              transaction_payload(transaction, :provider_response),
                             edoc: transaction.edoc || "—",
                             inserted_at: format_timestamp_utc_minus_4(transaction.inserted_at)
                           }
@@ -309,6 +312,21 @@ defmodule EdocWeb.CompanyTransactionsLive do
                     ]}
                   >
                     Provider Request
+                  </button>
+                  <button
+                    id="raw-json-tab-provider-response"
+                    type="button"
+                    phx-click="switch_raw_json_tab"
+                    phx-value-tab="provider_response"
+                    class={[
+                      "rounded-lg px-3 py-1.5 transition",
+                      @raw_json_tab == :provider_response &&
+                        "bg-slate-900 text-slate-100 shadow-sm dark:bg-slate-100 dark:text-slate-900",
+                      @raw_json_tab != :provider_response &&
+                        "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+                    ]}
+                  >
+                    Provider Response
                   </button>
                 </div>
               </div>
@@ -564,13 +582,19 @@ defmodule EdocWeb.CompanyTransactionsLive do
   defp default_raw_json_payloads do
     %{
       odoo_request: "No payload yet",
-      provider_request: "No payload yet"
+      provider_request: "No payload yet",
+      provider_response: "No payload yet"
     }
   end
 
+  defp normalize_raw_json_tab("provider_response"), do: :provider_response
+  defp normalize_raw_json_tab(:provider_response), do: :provider_response
   defp normalize_raw_json_tab("provider_request"), do: :provider_request
   defp normalize_raw_json_tab(:provider_request), do: :provider_request
   defp normalize_raw_json_tab(_), do: :odoo_request
+
+  defp active_raw_json_payload(payloads, :provider_response),
+    do: Map.get(payloads, :provider_response, "No payload yet")
 
   defp active_raw_json_payload(payloads, :provider_request),
     do: Map.get(payloads, :provider_request, "No payload yet")
@@ -578,7 +602,8 @@ defmodule EdocWeb.CompanyTransactionsLive do
   defp active_raw_json_payload(payloads, _),
     do: Map.get(payloads, :odoo_request, "No payload yet")
 
-  defp transaction_payload(transaction, field) when field in [:odoo_request, :provider_request] do
+  defp transaction_payload(transaction, field)
+       when field in [:odoo_request, :provider_request, :provider_response] do
     payload = Map.get(transaction, field)
     encode_payload(payload)
   end

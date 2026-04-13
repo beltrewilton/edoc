@@ -66,6 +66,7 @@ defmodule EdocWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/companies", CompanyLive, :index
       live "/companies/new", CompanyLive, :new
+      live "/companies/:id/edit", CompanyLive, :edit
       live "/companies/:id/transactions", CompanyTransactionsLive, :transactions
       live "/tax-sequences", TaxSequenceLive, :index
     end

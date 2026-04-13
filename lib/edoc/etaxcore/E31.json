@@ -4,7 +4,7 @@
     "idDoc": {
       "tipoeCF": 31, 
       "encf": "E310000000001",
-      "fechaVencimientoSecuencia": "31-12-2025",
+      "fechaVencimientoSecuencia": "31-12-2028",
       "indicadorMontoGravado": 1, #Fixed to 1
       "tipoIngresos": "02", #Fixed to "02"
       "tipoPago": 1, #Fixed to 1

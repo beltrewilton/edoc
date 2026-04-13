@@ -40,6 +40,7 @@ defmodule Edoc.Etaxcore.InvoiceService do
          {:ok, result} <-
            dispatch_request(
              transaction,
+             company,
              tenant,
              request_payload,
              payload,
@@ -79,101 +80,127 @@ defmodule Edoc.Etaxcore.InvoiceService do
   end
 
   defp build_request_payload(payload, %Company{} = company, e_doc) do
-    {:ok, PayloadMapper.map_invoice(payload, company, e_doc: e_doc)}
+    request_payload =
+      payload
+      |> PayloadMapper.map_invoice(company, e_doc: e_doc)
+      |> stringify_rnc_fields()
+
+    {:ok, request_payload}
+  end
+
+  defp stringify_rnc_fields(%{"encabezado" => encabezado} = request_payload)
+       when is_map(encabezado) do
+    updated_encabezado =
+      encabezado
+      |> stringify_nested_field("emisor", "rncEmisor")
+      |> stringify_nested_field("comprador", "rncComprador")
+
+    Map.put(request_payload, "encabezado", updated_encabezado)
+  end
+
+  defp stringify_rnc_fields(request_payload), do: request_payload
+
+  defp stringify_nested_field(parent, child_key, field_key) do
+    case Map.get(parent, child_key) do
+      child when is_map(child) -> Map.put(parent, child_key, stringify_field(child, field_key))
+      _ -> parent
+    end
+  end
+
+  defp stringify_field(map, field_key) do
+    case Map.get(map, field_key) do
+      nil -> map
+      false -> map
+      value -> Map.put(map, field_key, to_string(value))
+    end
   end
 
   defp dispatch_request(
          %Transaction{} = transaction,
-         _tenant,
+         %Company{} = company,
+         tenant,
          request_payload,
          payload,
          odoo_context,
          e_doc,
          doc_type
        ) do
-    _request_at = DateTime.utc_now(:second)
+    request_at = DateTime.utc_now(:second)
 
     print_json("request_payload", request_payload)
     print_json("payload", payload)
 
-    maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type)
+    provider_result =
+      case maybe_add_odoo_invoice_sequence(odoo_context, payload, e_doc, doc_type) do
+        :ok -> safe_send_invoice(request_payload, company)
+        {:error, reason} -> {:error, {:odoo_invoice_action_error, reason}}
+      end
 
-    # provider_result =
-    #   case maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type) do
-    #     :ok -> safe_send_invoice(request_payload)
-    #     {:error, reason} -> {:error, {:odoo_invoice_action_error, reason}}
-    #   end
+    maybe_add_odoo_provider_response_note(odoo_context, payload, provider_result)
 
-    # normalized_provider_response = normalize_provider_response(provider_result)
+    normalized_provider_response = normalize_provider_response(provider_result)
 
-    {:ok,
-     %{
-       transaction: transaction,
-       provider_response: %{}
-     }}
+    case persist_provider_exchange(
+           transaction,
+           tenant,
+           request_payload,
+           request_at,
+           normalized_provider_response
+         ) do
+      :ok ->
+        case provider_result do
+          {:ok, _body} ->
+            {:ok,
+             %{
+               transaction: transaction,
+               provider_response: normalized_provider_response
+             }}
 
-    # case persist_provider_exchange(
-    #        transaction,
-    #        tenant,
-    #        request_payload,
-    #        request_at,
-    #        normalized_provider_response
-    #      ) do
-    #   :ok ->
-    #     case provider_result do
-    #       {:ok, _body} ->
-    #         {:ok,
-    #          %{
-    #            transaction: transaction,
-    #            provider_response: normalized_provider_response
-    #          }}
+          {:error, _reason} ->
+            {:error,
+             %{
+               transaction: transaction,
+               provider_response: normalized_provider_response
+             }}
+        end
 
-    #       {:error, _reason} ->
-    #         {:error,
-    #          %{
-    #            transaction: transaction,
-    #            provider_response: normalized_provider_response
-    #          }}
-    #     end
-
-    #   {:error, changeset} ->
-    #     {:error, changeset}
-    # end
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
-  defp maybe_run_odoo_invoice_actions(odoo_context, payload, e_doc, doc_type) do
+  defp maybe_add_odoo_invoice_sequence(odoo_context, payload, e_doc, doc_type) do
     case payload_invoice_id(payload) do
       nil ->
         :ok
 
       invoice_id ->
-        do_run_odoo_invoice_actions(odoo_context, invoice_id, e_doc, doc_type)
+        do_add_odoo_invoice_sequence(odoo_context, invoice_id, e_doc, doc_type)
     end
   end
 
-  defp do_run_odoo_invoice_actions({%Odoo{} = client, uid}, invoice_id, e_doc, doc_type) do
+  defp do_add_odoo_invoice_sequence({%Odoo{} = client, uid}, invoice_id, e_doc, doc_type) do
     try do
       maybe_add_invoice_sequence(client, uid, invoice_id, e_doc, doc_type)
-      Odoo.add_invoice_log_note(client, uid, invoice_id, accepted_request_note())
       :ok
     rescue
       exception ->
-        Logger.error("Failed to run Odoo invoice actions: #{Exception.message(exception)}")
+        Logger.error("Failed to add Odoo invoice sequence: #{Exception.message(exception)}")
         {:error, exception}
     end
   end
 
-  defp do_run_odoo_invoice_actions(nil, invoice_id, _e_doc, _doc_type) do
+  defp do_add_odoo_invoice_sequence(nil, invoice_id, _e_doc, _doc_type) do
     Logger.warning(
-      "Skipping Odoo invoice actions due to missing Odoo context for invoice #{inspect(invoice_id)}"
+      "Skipping Odoo invoice sequence due to missing Odoo context for invoice #{inspect(invoice_id)}"
     )
 
     :ok
   end
 
-  defp do_run_odoo_invoice_actions(_other, invoice_id, _e_doc, _doc_type) do
+  defp do_add_odoo_invoice_sequence(_other, invoice_id, _e_doc, _doc_type) do
     Logger.warning(
-      "Skipping Odoo invoice actions due to invalid Odoo context for invoice #{inspect(invoice_id)}"
+      "Skipping Odoo invoice sequence due to invalid Odoo context for invoice #{inspect(invoice_id)}"
     )
 
     :ok
@@ -187,12 +214,84 @@ defmodule Edoc.Etaxcore.InvoiceService do
     Odoo.add_invoice_sequence(client, uid, invoice_id, e_doc, doc_type)
   end
 
-  defp accepted_request_note do
-    "REQUEST ACEPTADO EN PLATAFORMA #{Date.utc_today()}"
+  defp maybe_add_odoo_provider_response_note(_odoo_context, _payload, {:error, _reason}), do: :ok
+
+  defp maybe_add_odoo_provider_response_note(odoo_context, payload, {:ok, provider_body}) do
+    case payload_invoice_id(payload) do
+      nil ->
+        :ok
+
+      invoice_id ->
+        do_add_odoo_provider_response_note(odoo_context, invoice_id, provider_body)
+    end
   end
 
-  defp safe_send_invoice(payload) do
-    EtaxcoreClient.send_invoice(payload)
+  defp do_add_odoo_provider_response_note({%Odoo{} = client, uid}, invoice_id, provider_body) do
+    note = provider_response_note(provider_body)
+
+    try do
+      Odoo.add_invoice_log_note(client, uid, invoice_id, note)
+      :ok
+    rescue
+      exception ->
+        Logger.warning(
+          "Failed to add Odoo provider response note for invoice #{inspect(invoice_id)}: #{Exception.message(exception)}"
+        )
+
+        :ok
+    end
+  end
+
+  defp do_add_odoo_provider_response_note(nil, invoice_id, _provider_body) do
+    Logger.warning(
+      "Skipping Odoo provider response note due to missing Odoo context for invoice #{inspect(invoice_id)}"
+    )
+
+    :ok
+  end
+
+  defp do_add_odoo_provider_response_note(_other, invoice_id, _provider_body) do
+    Logger.warning(
+      "Skipping Odoo provider response note due to invalid Odoo context for invoice #{inspect(invoice_id)}"
+    )
+
+    :ok
+  end
+
+  defp provider_response_note(provider_body) when is_map(provider_body) do
+    estado =
+      nested_value(provider_body, ["result", "estado"]) ||
+        nested_value(provider_body, ["result", "msj", "estado"])
+
+    fecha_recepcion =
+      nested_value(provider_body, ["result", "fechaRecepcion"]) ||
+        nested_value(provider_body, ["result", "msj", "fechaRecepcion"])
+
+    qr_data = nested_value(provider_body, ["result", "qrData"])
+
+    messages =
+      provider_body
+      |> provider_response_messages()
+      |> Enum.map(&provider_message_text/1)
+      |> Enum.reject(&is_nil/1)
+
+    note_html_section(
+      "Información DGII",
+      [
+        note_html_status_line(string_or_default(estado, "N/A")),
+        note_html_line("Fecha Recepción", fecha_recepcion),
+        note_html_line("Messages", Enum.join(messages, "; ")),
+        note_html_link_line("QR Data", qr_data)
+      ]
+    )
+  end
+
+  defp provider_response_note(_provider_body) do
+    note_html_section("Información DGII", [note_html_status_line("N/A")])
+  end
+
+  defp safe_send_invoice(payload, %Company{} = company) do
+    EtaxcoreClient.send_invoice(payload, company)
   rescue
     exception ->
       Logger.error("eTaxCore request failed with exception: #{Exception.message(exception)}")
@@ -274,6 +373,14 @@ defmodule Edoc.Etaxcore.InvoiceService do
     }
   end
 
+  defp normalize_provider_response({:error, {:missing_provider_config, field}}) do
+    %{
+      "status" => "error",
+      "type" => "missing_provider_config",
+      "field" => to_string(field)
+    }
+  end
+
   defp normalize_provider_response({:error, {:client_exception, exception}}) do
     %{
       "status" => "error",
@@ -303,6 +410,116 @@ defmodule Edoc.Etaxcore.InvoiceService do
 
   defp format_reason(%_{__exception__: true} = exception), do: Exception.message(exception)
   defp format_reason(reason), do: inspect(reason)
+
+  defp provider_response_messages(provider_body) when is_map(provider_body) do
+    direct_messages = list_or_empty(Map.get(provider_body, "messages"))
+
+    nested_messages =
+      provider_body
+      |> nested_value(["result", "msj", "mensajes"])
+      |> list_or_empty()
+
+    direct_messages ++ nested_messages
+  end
+
+  defp nested_value(value, []), do: value
+
+  defp nested_value(%{} = value, [key | rest]) when is_binary(key) do
+    value
+    |> Map.get(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(%{} = value, [key | rest]) when is_atom(key) do
+    value
+    |> Map.get(key)
+    |> nested_value(rest)
+  end
+
+  defp nested_value(_, _), do: nil
+
+  defp note_html_section(title, items) do
+    list_items =
+      items
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join()
+
+    "<p><strong>#{html_text(title)}</strong></p><ul>#{list_items}</ul>"
+  end
+
+  defp note_html_line(_label, nil), do: nil
+  defp note_html_line(_label, ""), do: nil
+
+  defp note_html_line(label, value) do
+    "<li><strong>#{html_text(label)}:</strong> #{html_text(value)}</li>"
+  end
+
+  defp note_html_status_line(nil), do: nil
+  defp note_html_status_line(""), do: nil
+
+  defp note_html_status_line(status) do
+    check_html =
+      if status == "Aceptado" do
+        " <span style=\"color: #16a34a;\">&#10003;</span>"
+      else
+        ""
+      end
+
+    "<li><strong>Estado:</strong> #{html_text(status)}#{check_html}</li>"
+  end
+
+  defp note_html_link_line(_label, nil), do: nil
+  defp note_html_link_line(_label, ""), do: nil
+
+  defp note_html_link_line(label, url) do
+    raw_url = html_text(url)
+
+    "<li><strong>#{html_text(label)}:</strong> <a href=\"#{raw_url}\" target=\"_blank\" rel=\"noopener noreferrer\">Consultar &#128279;</a></li>"
+  end
+
+  defp html_text(value), do: to_string(value)
+
+  defp list_or_empty(value) when is_list(value), do: value
+  defp list_or_empty(_value), do: []
+
+  defp provider_message_text(%{} = message) do
+    string_or_nil(
+      Map.get(message, "valor") ||
+        Map.get(message, "message") ||
+        Map.get(message, "descripcion") ||
+        Map.get(message, "detail")
+    )
+  end
+
+  defp provider_message_text(message), do: string_or_nil(message)
+
+  defp string_or_nil(nil), do: nil
+  defp string_or_nil(false), do: nil
+
+  defp string_or_nil(%{} = value) do
+    value
+    |> Map.values()
+    |> Enum.map(&string_or_nil/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.join(" ")
+    |> string_or_nil()
+  end
+
+  defp string_or_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp string_or_nil(value), do: value |> to_string() |> string_or_nil()
+
+  defp string_or_default(value, default) do
+    case string_or_nil(value) do
+      nil -> default
+      present -> present
+    end
+  end
 
   defp payload_invoice_id(payload) do
     payload

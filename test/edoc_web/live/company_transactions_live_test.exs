@@ -39,7 +39,8 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
           amount: 2500.45,
           tax: 450.11,
           odoo_request_at: ~U[2026-02-14 19:45:00Z],
-          provider_request: %{"provider_marker" => "etaxcore"}
+          provider_request: %{"provider_marker" => "etaxcore"},
+          provider_response: %{"status" => "accepted", "track_id" => "abc-123"}
         })
 
       _second_tx =
@@ -124,6 +125,18 @@ defmodule EdocWeb.CompanyTransactionsLiveTest do
         |> render()
 
       assert provider_modal_html =~ "&quot;provider_marker&quot;: &quot;etaxcore&quot;"
+
+      lv
+      |> element("#raw-json-tab-provider-response")
+      |> render_click()
+
+      provider_response_modal_html =
+        lv
+        |> element("#transaction-raw-json-client")
+        |> render()
+
+      assert provider_response_modal_html =~ "&quot;status&quot;: &quot;accepted&quot;"
+      assert provider_response_modal_html =~ "&quot;track_id&quot;: &quot;abc-123&quot;"
     end
 
     test "uses rncEmisor in RNC column for E43", %{conn: conn, company: company} do

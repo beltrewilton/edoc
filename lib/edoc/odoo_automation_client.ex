@@ -1020,6 +1020,7 @@ defmodule Edoc.OdooAutomationClient do
       [[invoice_id]],
       %{
         body: note,
+        body_is_html: true,
         message_type: "comment",
         subtype_xmlid: "mail.mt_note"
       }
