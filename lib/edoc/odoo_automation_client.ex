@@ -488,6 +488,7 @@ defmodule Edoc.OdooAutomationClient do
           list(integer()) | nil,
           list(String.t()) | nil
         ) :: list(map())
+  def get_move_lines_by_ids(client, uid, line_ids, fields \\ nil)
   def get_move_lines_by_ids(_client, _uid, nil, _fields), do: []
   def get_move_lines_by_ids(_client, _uid, [], _fields), do: []
 
@@ -495,7 +496,7 @@ defmodule Edoc.OdooAutomationClient do
         %__MODULE__{} = client,
         uid,
         line_ids,
-        fields \\ nil
+        fields
       ) do
     kwargs =
       case fields do
@@ -810,7 +811,8 @@ defmodule Edoc.OdooAutomationClient do
           "currency_id",
           "payment_state",
           "invoice_origin",
-          "ref"
+          "ref",
+          "invoice_line_ids"
         ]
 
     invoices =
@@ -850,18 +852,31 @@ defmodule Edoc.OdooAutomationClient do
 
         read_line_fields =
           line_fields
+          |> maybe_add_field("price_total", true)
           |> Enum.reject(&(&1 == "type"))
           |> maybe_add_field("product_id", include_product_type? and not include_product_id?)
 
+        line_ids =
+          invoice
+          |> Map.get("invoice_line_ids", [])
+          |> List.wrap()
+          |> Enum.filter(&is_integer/1)
+
         lines =
-          execute_kw!(
-            client,
-            uid,
-            "account.move.line",
-            "search_read",
-            [[["move_id", "=", invoice_id]]],
-            %{fields: read_line_fields}
-          )
+          case line_ids do
+            [] ->
+              execute_kw!(
+                client,
+                uid,
+                "account.move.line",
+                "search_read",
+                [[["move_id", "=", invoice_id]]],
+                %{fields: read_line_fields}
+              )
+
+            ids ->
+              get_move_lines_by_ids(client, uid, ids, read_line_fields)
+          end
           |> maybe_enrich_lines_with_product_type(client, uid, include_product_type?)
           |> maybe_drop_field("product_id", include_product_type? and not include_product_id?)
 
