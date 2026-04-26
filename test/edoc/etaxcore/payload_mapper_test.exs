@@ -90,7 +90,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              %{"formaPago" => 1, "montoPago" => money(3009.0)}
            ]
 
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 123456789
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 123_456_789
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "EDOC SRL"
     assert mapped["encabezado"]["emisor"]["numeroFacturaInterna"] == "INV/2026/02/0008"
 
@@ -530,6 +530,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
         %{
           "name" => "[SERV001] Servicio de publicidad",
           "description" => "Servicio mensual de publicidad",
+          "price_total" => 11_800.0,
           "price_subtotal" => 10000.0,
           "price_unit" => 10000.0,
           "quantity" => 1.0
@@ -564,9 +565,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131313131
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131_313_131
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123456789
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123_456_789
 
     assert [
              %{
@@ -580,6 +581,46 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                  "montoISRRetenido" => money(1000.0)
                }
              }
+           ] = mapped["detallesItems"]
+  end
+
+  test "computes E41 montoITBISRetenido per line from price_total minus price_subtotal" do
+    payload = %{
+      "_id" => 41_288,
+      "amount_tax" => 540.0,
+      "amount_total" => 3540.0,
+      "amount_untaxed" => 3000.0,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-03-10",
+      "invoice_partner_display_name" => "Proveedor Local",
+      "rnc_comprador" => "131-31313-1",
+      "partner_id" => 999,
+      "payment_reference" => "BILL/2026/0002",
+      "invoice_items" => [
+        %{
+          "name" => "Linea 1",
+          "price_total" => 1180.0,
+          "price_subtotal" => 1000.0,
+          "price_unit" => 1000.0,
+          "quantity" => 1.0
+        },
+        %{
+          "name" => "Linea 2",
+          "price_total" => 2360.0,
+          "price_subtotal" => 2000.0,
+          "price_unit" => 2000.0,
+          "quantity" => 1.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+
+    mapped = PayloadMapper.map_e41(payload, company, e_doc: "E410000000002")
+
+    assert [
+             %{"retencion" => %{"montoITBISRetenido" => money(180.0)}},
+             %{"retencion" => %{"montoITBISRetenido" => money(360.0)}}
            ] = mapped["detallesItems"]
   end
 
@@ -614,9 +655,9 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Gastos Menores"
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 101010101
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 101_010_101
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123456789
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123_456_789
 
     assert mapped["encabezado"]["totales"] == %{
              "montoExento" => money(700.0),
@@ -875,7 +916,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"]["bancoPago"] ==
              "BB0111111111111111111111111111111111111111111111111111111111111111111111111"
 
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 533445888
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 533_445_888
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "ALEJA FERMIN SANTOS"
 
     assert mapped["encabezado"]["comprador"] == %{
@@ -953,7 +994,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
     mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000009999")
 
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == 130987654
+    assert mapped["encabezado"]["comprador"]["rncComprador"] == 130_987_654
     assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "Cliente Enriquecido SRL"
     assert mapped["encabezado"]["comprador"]["direccionComprador"] == "Distrito Nacional"
     assert mapped["encabezado"]["comprador"]["tablaTelefonoComprador"] == ["809-555-9999"]
@@ -988,7 +1029,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     company = %Company{company_name: "EDOC Company", rnc: "999999999"}
     mapped = PayloadMapper.map_e47(payload, company, e_doc: "E470000009999")
 
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131313131
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131_313_131
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor E47 SRL"
     assert mapped["encabezado"]["emisor"]["nombreComercial"] == "Proveedor E47"
     assert mapped["encabezado"]["emisor"]["direccionEmisor"] == "Santiago, Calle 1"
@@ -1032,7 +1073,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       payload = Map.put(base_payload, "vat", vat)
       mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000001777")
 
-      assert mapped["encabezado"]["comprador"]["rncComprador"] == 131244343
+      assert mapped["encabezado"]["comprador"]["rncComprador"] == 131_244_343
     end
   end
 end

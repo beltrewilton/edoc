@@ -864,10 +864,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp build_detalles_items_e41(payload) do
     indicador_facturacion = payload_facturation_indicator(payload)
 
-    itbis_retenido =
-      numeric(value_from_keys(payload, ["totalITBISRetenido", "total_itbis_retenido"])) ||
-        amount_tax(payload)
-
     isr_retenido =
       numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
 
@@ -887,7 +883,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           "indicadorAgenteRetencionoPercepcion" => 1,
           "montoITBISRetenido" =>
             numeric(value_from_keys(item, ["montoITBISRetenido", "monto_itbis_retenido"])) ||
-              itbis_retenido,
+              item_itbis_retenido(item, amount),
           "montoISRRetenido" =>
             numeric(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"])) ||
               isr_retenido
@@ -1248,6 +1244,17 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       numeric(payload_value(item, "debit")) ||
       numeric(payload_value(item, "credit")) ||
       quantity * unit_price
+  end
+
+  defp item_total(item, amount) do
+    numeric(payload_value(item, "price_total")) || amount
+  end
+
+  defp item_itbis_retenido(item, amount) do
+    item
+    |> item_total(amount)
+    |> Kernel.-(amount)
+    |> max(0)
   end
 
   defp derived_unit_price(nil, _quantity), do: nil
