@@ -875,6 +875,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       unit_price = item_unit_price(item)
       amount = item_amount(item, quantity, unit_price)
 
+      IO.inspect(item, label: "items")
+
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
