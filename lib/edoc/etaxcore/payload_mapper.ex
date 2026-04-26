@@ -5,7 +5,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   alias Edoc.Accounts.Company
 
-  @fecha_vencimiento_secuencia "31-12-2028" #TODO: this is on QA
+  # INFO: this is on QA
+  @fecha_vencimiento_secuencia "31-12-2028"
+  @default_e47_currency "USD"
+  @default_e47_exchange_rate 60
+  @fecha_limite_pago_offsets %{41 => 7, 47 => 8}
+  @direccion_comprador_max_length 99
   @currency_fields MapSet.new([
                      "montoPago",
                      "montoGravadoTotal",
@@ -59,6 +64,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   @spec map_e32(map(), Company.t(), keyword()) :: map()
   def map_e32(payload, %Company{} = company, opts \\ []) when is_map(payload) do
     monto_total = amount_total(payload)
+
     %{
       "encabezado" => %{
         "version" => "1.0",
@@ -128,8 +134,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e41(payload, opts),
-        "emisor" => build_emisor_e41_from_supplier(payload),
-        "comprador" => build_comprador_e41_from_company(payload, company),
+        "emisor" => build_emisor_e41_from_company(payload, company),
+        "comprador" => build_comprador_e41_from_supplier(payload),
         "totales" => build_totales_e41(payload)
       },
       "detallesItems" => build_detalles_items_e41(payload),
@@ -147,9 +153,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e43(payload, opts),
-        "emisor" => build_emisor_e43_from_supplier(payload),
-        "comprador" => build_comprador_e43_from_company(payload, company),
-        "totales" => build_totales_e32(payload)
+        "emisor" => build_emisor_e43_from_company(payload, company),
+        "totales" => build_totales_e43(payload)
       },
       "detallesItems" =>
         build_detalles_items(payload,
@@ -235,8 +240,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encabezado" => %{
         "version" => "1.0",
         "idDoc" => build_id_doc_e47(payload, opts),
-        "emisor" => build_emisor_e47_from_supplier(payload),
-        "comprador" => build_comprador_e47_from_company(payload, company),
+        "emisor" => build_emisor_e47_from_company(payload, company),
+        "comprador" => build_comprador_e47_from_supplier(payload),
         "totales" => build_totales_e47(payload),
         "otraMoneda" => build_otra_moneda_e47(payload)
       },
@@ -270,7 +275,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tipoeCF" => tipoeCF,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
-      "indicadorMontoGravado" => 0,
+      "indicadorMontoGravado" => indicador_monto_gravado(payload),
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
@@ -279,16 +284,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           "montoPago" => monto_total
         }
       ]
-    }
-  end
-
-  defp build_id_doc_e32(payload, opts) do
-    %{
-      "tipoeCF" => 32,
-      "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
-      "tipoIngresos" => "01",
-      "tipoPago" => tipo_pago(payload),
-      "tablaFormasPago" => []
     }
   end
 
@@ -313,7 +308,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tipoeCF" => 34,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "indicadorNotaCredito" => "0",
-      "indicadorMontoGravado" => 0,
+      "indicadorMontoGravado" => indicador_monto_gravado(payload),
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => []
@@ -325,7 +320,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tipoeCF" => 41,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
-      "indicadorMontoGravado" => 0,
+      "indicadorMontoGravado" => indicador_monto_gravado(payload),
+      "FechaLimitePago" => fecha_limite_pago(payload, 41),
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => [
         %{
@@ -336,7 +332,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_id_doc_e43(payload, opts) do
+  defp build_id_doc_e43(_payload, opts) do
     %{
       "tipoeCF" => 43,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
@@ -370,7 +366,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tipoeCF" => 45,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
-      "indicadorMontoGravado" => 0,
+      "indicadorMontoGravado" => indicador_monto_gravado(payload),
       "tipoIngresos" => "01",
       "tipoPago" => tipo_pago(payload),
       "tablaFormasPago" => []
@@ -404,6 +400,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
       "tablaFormasPago" => [],
+      "FechaLimitePago" => fecha_limite_pago(payload, 47),
       "numeroCuentaPago" =>
         value_as_string(payload, ["numeroCuentaPago", "numero_cuenta_pago"], ""),
       "bancoPago" => value_as_string(payload, ["bancoPago", "banco_pago"], "")
@@ -412,22 +409,13 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp build_emisor(payload, %Company{} = company) do
     %{
-      "rncEmisor" =>
-        rnc_or_empty(
-          company_field(company, :rnc)
-        ),
-      "razonSocialEmisor" =>
-        string_or_empty(
-          company_field(company, :company_name)
-        ),
-      "nombreComercial" =>
-        string_or_empty(
-          company_field(company, :company_name)
-        ),
+      "rncEmisor" => rnc_or_empty(company_field(company, :rnc)),
+      "razonSocialEmisor" => string_or_empty(company_field(company, :company_name)),
+      "nombreComercial" => string_or_empty(company_field(company, :company_name)),
       "direccionEmisor" =>
         value_or_default(
           company_address(company),
-          "NA"
+          "N/A"
         ),
       "tablaTelefonoEmisor" => company_phone_list(company),
       "correoEmisor" => string_or_empty(company_email(company)),
@@ -457,7 +445,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
             payload_value(payload, "correo_comprador") || payload_value(payload, "email")
         ),
       "direccionComprador" =>
-        string_or_empty(
+        direccion_comprador(
           payload_value(payload, "direccionComprador") ||
             payload_value(payload, "partner_address") ||
             payload_value(payload, "direccion_comprador")
@@ -508,6 +496,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
+  defp build_totales_e43(payload) do
+    monto_exento = amount_exempt(payload)
+
+    %{
+      "montoExento" => monto_exento,
+      "impuestosAdicionales" => [],
+      "montoTotal" => monto_exento
+    }
+  end
+
   defp build_informacion_referencia_e33(payload) do
     %{
       "ncfModificado" => modified_ncf(payload),
@@ -525,75 +523,33 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_emisor_e41_from_supplier(payload) do
-    comprador = build_comprador_e41(payload)
-
+  defp build_emisor_e41_from_company(payload, %Company{} = company) do
     %{
-      "rncEmisor" =>
-        rnc_or_empty(
-          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
-            Map.get(comprador, "rncComprador")
-        ),
-      "razonSocialEmisor" =>
-        string_or_empty(
-          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
-            Map.get(comprador, "razonSocialComprador")
-        ),
-      "direccionEmisor" =>
-        value_or_default(
-          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
-            Map.get(comprador, "direccionComprador"),
-          "NA"
-        ),
-      "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
+      "rncEmisor" => rnc_or_empty(company_field(company, :rnc)),
+      "razonSocialEmisor" => string_or_empty(company_field(company, :company_name)),
+      "direccionEmisor" => value_or_default(company_address(company), "N/A"),
+      "tablaTelefonoEmisor" => company_phone_list(company),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
   end
 
-  defp build_emisor_e43_from_supplier(payload) do
-    comprador = build_comprador(payload)
-
+  defp build_emisor_e43_from_company(payload, %Company{} = company) do
     %{
-      "rncEmisor" =>
-        rnc_or_empty(
-          value_from_keys(payload, ["rncEmisor", "rnc_emisor"]) ||
-            Map.get(comprador, "rncComprador")
-        ),
-      "razonSocialEmisor" =>
-        string_or_empty(
-          value_from_keys(payload, ["razonSocialEmisor", "razon_social_emisor"]) ||
-            Map.get(comprador, "razonSocialComprador")
-        ),
-      "nombreComercial" =>
-        string_or_empty(
-          value_from_keys(payload, [
-            "nombreComercial",
-            "nombre_comercial",
-            "razonSocialEmisor",
-            "razon_social_emisor"
-          ]) || Map.get(comprador, "razonSocialComprador")
-        ),
-      "direccionEmisor" =>
-        value_or_default(
-          value_from_keys(payload, ["direccionEmisor", "direccion_emisor"]) ||
-            Map.get(comprador, "direccionComprador"),
-          "NA"
-        ),
-      "tablaTelefonoEmisor" => emisor_phone_list(payload, supplier_phone_list(payload)),
-      "correoEmisor" =>
-        string_or_empty(
-          value_from_keys(payload, ["correoEmisor", "correo_emisor"]) ||
-            Map.get(comprador, "correoComprador")
-        ),
-      "webSite" => "",
+      "rncEmisor" => rnc_or_empty(company_field(company, :rnc)),
+      "razonSocialEmisor" => string_or_empty(company_field(company, :company_name)),
+      "nombreComercial" => string_or_empty(company_field(company, :company_name)),
+      "direccionEmisor" => value_or_default(company_address(company), "N/A"),
+      "tablaTelefonoEmisor" => company_phone_list(company),
+      "correoEmisor" => string_or_empty(company_email(company)),
+      "webSite" => string_or_empty(company_website(company)),
       "numeroFacturaInterna" => string_or_empty(payload_value(payload, "payment_reference")),
-      "numeroPedidoInterno" =>
-        string_or_empty(
-          payload_value(payload, "invoice_origin") ||
-            payload_value(payload, "payment_reference") || payload_value(payload, "name")
-        ),
+      "numeroPedidoInterno" => internal_order_number(payload),
       "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
     }
+  end
+
+  defp build_emisor_e47_from_company(payload, %Company{} = company) do
+    build_emisor_e43_from_company(payload, company)
   end
 
   defp build_emisor_e46(payload, %Company{} = company) do
@@ -614,65 +570,40 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     ])
   end
 
-  defp build_emisor_e47_from_supplier(payload) do
-    payload
-    |> build_emisor_e43_from_supplier()
-    |> Map.take([
-      "rncEmisor",
-      "razonSocialEmisor",
-      "nombreComercial",
-      "direccionEmisor",
-      "tablaTelefonoEmisor",
-      "correoEmisor",
-      "webSite",
-      "numeroFacturaInterna",
-      "numeroPedidoInterno",
-      "fechaEmision"
-    ])
-  end
-
-  defp build_comprador_e41(payload) do
-    payload
-    |> build_comprador()
-    |> Map.take([
-      "rncComprador",
-      "razonSocialComprador",
-      "correoComprador",
-      "direccionComprador",
-      "municipioComprador",
-      "provinciaComprador"
-    ])
-  end
-
-  defp build_comprador_e41_from_company(_payload, %Company{} = company) do
+  defp build_comprador_e41_from_supplier(payload) do
     %{
-      "rncComprador" => rnc_or_empty(company_field(company, :rnc)),
-      "razonSocialComprador" => string_or_empty(company_field(company, :company_name)),
-      "correoComprador" => string_or_empty(company_email(company)),
-      "direccionComprador" => string_or_empty(company_address(company)),
-      "municipioComprador" => value_or_default(company_field(company, :municipio), "010101"),
-      "provinciaComprador" => value_or_default(company_field(company, :provincia), "010000")
-    }
-  end
-
-  defp build_comprador_e43_from_company(payload, %Company{} = company) do
-    %{
-      "rncComprador" => rnc_or_empty(company_field(company, :rnc)),
-      "razonSocialComprador" => string_or_empty(company_field(company, :company_name)),
-      "contactoComprador" => string_or_empty(company_field(company, :company_name)),
-      "correoComprador" => string_or_empty(company_email(company)),
-      "direccionComprador" => string_or_empty(company_address(company)),
-      "municipioComprador" => value_or_default(company_field(company, :municipio), "010101"),
-      "provinciaComprador" => value_or_default(company_field(company, :provincia), "010000"),
-      "fechaEntrega" => format_date(payload_value(payload, "invoice_date_due")),
-      "fechaOrdenCompra" => format_date(payload_value(payload, "invoice_date")),
-      "numeroOrdenCompra" =>
-        string_or_empty(
-          payload_value(payload, "invoice_origin") ||
-            payload_value(payload, "payment_reference") || payload_value(payload, "name")
+      "rncComprador" =>
+        rnc_or_empty(
+          value_from_keys(payload, ["rncComprador", "rnc_comprador", "rncEmisor", "rnc_emisor"]) ||
+            customer_tax_id(payload)
         ),
-      "codigoInternoComprador" =>
-        string_or_empty(company_field(company, :id) || payload_value(payload, "company_id"))
+      "razonSocialComprador" =>
+        string_or_empty(
+          value_from_keys(payload, [
+            "razonSocialComprador",
+            "razon_social_comprador",
+            "razonSocialEmisor",
+            "razon_social_emisor"
+          ]) || customer_name(payload)
+        ),
+      "correoComprador" =>
+        string_or_empty(
+          value_from_keys(payload, ["correoComprador", "correo_comprador", "partner_email"])
+        ),
+      "direccionComprador" =>
+        direccion_comprador(
+          value_from_keys(payload, [
+            "direccionComprador",
+            "direccion_comprador",
+            "partner_address",
+            "direccionEmisor",
+            "direccion_emisor"
+          ])
+        ),
+      "municipioComprador" =>
+        value_or_default(payload_value(payload, "municipio_comprador"), "010101"),
+      "provinciaComprador" =>
+        value_or_default(payload_value(payload, "provincia_comprador"), "010000")
     }
   end
 
@@ -703,20 +634,18 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     })
   end
 
-  defp build_comprador_e47_from_company(payload, %Company{} = company) do
+  defp build_comprador_e47_from_supplier(payload) do
     %{
-      "identificadorExtranjero" =>
-        value_as_string(
-          company_field(company, :rnc) || company_field(company, :id),
-          ["identificadorExtranjero"],
-          value_as_string(
-            payload,
-            ["identificadorExtranjero", "identificador_extranjero", "commercial_partner_id"],
-            ""
-          )
-        ),
+      "identificadorExtranjero" => foreign_buyer_identifier(payload),
       "razonSocialComprador" =>
-        string_or_empty(company_field(company, :company_name) || customer_name(payload))
+        string_or_empty(
+          value_from_keys(payload, [
+            "razonSocialComprador",
+            "razon_social_comprador",
+            "razonSocialEmisor",
+            "razon_social_emisor"
+          ]) || customer_name(payload)
+        )
     }
   end
 
@@ -826,7 +755,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_otra_moneda_e47(payload) do
-    exchange_rate = exchange_rate(payload)
+    explicit_exchange_rate? = exchange_rate_provided?(payload)
+    exchange_rate = exchange_rate(payload, @default_e47_exchange_rate)
 
     monto_exento_otra =
       numeric(value_from_keys(payload, ["montoExentoOtraMoneda", "monto_exento_otra_moneda"]))
@@ -835,10 +765,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       numeric(value_from_keys(payload, ["montoTotalOtraMoneda", "monto_total_otra_moneda"]))
 
     %{
-      "tipoMoneda" => value_as_string(payload, ["tipoMoneda", "tipo_moneda", "currency"], ""),
+      "tipoMoneda" =>
+        value_as_string(payload, ["tipoMoneda", "tipo_moneda", "currency"], @default_e47_currency),
       "tipoCambio" => exchange_rate,
       "montoExentoOtraMoneda" =>
-        monto_exento_otra || safe_div(amount_exempt(payload), exchange_rate),
+        monto_exento_otra ||
+          e47_foreign_currency_amount(
+            amount_exempt(payload),
+            exchange_rate,
+            explicit_exchange_rate?
+          ),
       "impuestosAdicionalesOtraMoneda" =>
         list_or_empty(
           value_from_keys(payload, [
@@ -846,7 +782,13 @@ defmodule Edoc.Etaxcore.PayloadMapper do
             "impuestos_adicionales_otra_moneda"
           ])
         ),
-      "montoTotalOtraMoneda" => monto_total_otra || safe_div(amount_total(payload), exchange_rate)
+      "montoTotalOtraMoneda" =>
+        monto_total_otra ||
+          e47_foreign_currency_amount(
+            amount_total(payload),
+            exchange_rate,
+            explicit_exchange_rate?
+          )
     }
   end
 
@@ -1023,7 +965,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e47(payload) do
-    exchange_rate = exchange_rate(payload)
+    explicit_exchange_rate? = exchange_rate_provided?(payload)
+    exchange_rate = exchange_rate(payload, @default_e47_exchange_rate)
 
     isr_retenido =
       numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
@@ -1047,7 +990,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
               isr_retenido
         },
         "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
+        "indicadorBienoServicio" => 2,
         "cantidadItem" => quantity,
         "unidadMedida" => "43",
         "tablaSubcantidad" => [],
@@ -1058,10 +1001,14 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "otraMonedaDetalle" => %{
           "precioOtraMoneda" =>
             numeric(value_from_keys(item, ["precioOtraMoneda", "precio_otra_moneda"])) ||
-              safe_div(unit_price, exchange_rate),
+              e47_detail_foreign_currency_amount(
+                unit_price,
+                exchange_rate,
+                explicit_exchange_rate?
+              ),
           "montoItemOtraMoneda" =>
             numeric(value_from_keys(item, ["montoItemOtraMoneda", "monto_item_otra_moneda"])) ||
-              safe_div(amount, exchange_rate)
+              e47_detail_foreign_currency_amount(amount, exchange_rate, explicit_exchange_rate?)
         },
         "montoItem" => amount
       }
@@ -1160,6 +1107,92 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     else
       if payment_term_id == 1, do: 1, else: 2
     end
+  end
+
+  defp fecha_limite_pago(payload, tipo_ecf) do
+    explicit_date =
+      payload
+      |> value_from_keys(["FechaLimitePago", "fechaLimitePago", "fecha_limite_pago"])
+      |> format_date()
+
+    if explicit_date != "" do
+      explicit_date
+    else
+      payload
+      |> payload_value("invoice_date_due")
+      |> add_days_to_date(Map.get(@fecha_limite_pago_offsets, tipo_ecf, 0))
+      |> format_date()
+    end
+  end
+
+  defp add_days_to_date(value, days) do
+    with date_text when is_binary(date_text) <- value,
+         {:ok, date} <- Date.from_iso8601(String.trim(date_text)) do
+      Date.add(date, days)
+    else
+      _ -> value
+    end
+  end
+
+  defp indicador_monto_gravado(payload) do
+    if explicit_tax_groups?(payload), do: 0, else: 1
+  end
+
+  defp explicit_tax_groups?(payload) do
+    payload
+    |> payload_value("tax_totals")
+    |> case do
+      %{} = totals ->
+        totals
+        |> Map.get("subtotals", [])
+        |> List.wrap()
+        |> Enum.any?(fn subtotal ->
+          subtotal
+          |> Map.get("tax_groups", [])
+          |> List.wrap()
+          |> Enum.any?()
+        end)
+
+      _ ->
+        false
+    end
+  end
+
+  defp internal_order_number(payload) do
+    payload
+    |> value_from_keys([
+      "numeroPedidoInterno",
+      "numero_pedido_interno",
+      "invoice_origin",
+      "payment_reference",
+      "name"
+    ])
+    |> string_or_empty()
+    |> String.replace(~r/\D/, "")
+  end
+
+  defp foreign_buyer_identifier(payload) do
+    payload
+    |> value_from_keys([
+      "identificadorExtranjero",
+      "identificador_extranjero",
+      "rncEmisor",
+      "rnc_emisor",
+      "partner_vat",
+      "vat",
+      "rncComprador",
+      "rnc_comprador",
+      "commercial_partner_id",
+      "partner_id"
+    ])
+    |> normalize_vat()
+    |> string_or_empty()
+  end
+
+  defp direccion_comprador(value) do
+    value
+    |> string_or_empty()
+    |> String.slice(0, @direccion_comprador_max_length)
   end
 
   defp payload_facturation_indicator(payload) do
@@ -1333,7 +1366,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp value_from_keys(_, _), do: nil
 
-  defp value_as_string(payload, keys, default \\ "")
+  defp value_as_string(payload, keys, default)
 
   defp value_as_string(payload, keys, default) when is_list(keys) do
     payload
@@ -1354,9 +1387,30 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp list_or_empty(value) when is_list(value), do: value
   defp list_or_empty(_), do: []
 
-  defp exchange_rate(payload) do
-    numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])) || 0
+  defp exchange_rate(payload, default) do
+    case numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])) do
+      nil -> default
+      value -> value
+    end
   end
+
+  defp exchange_rate_provided?(payload) do
+    not is_nil(numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])))
+  end
+
+  defp e47_foreign_currency_amount(amount, rate, true), do: safe_div(amount, rate)
+
+  defp e47_foreign_currency_amount(amount, rate, false) do
+    amount
+    |> safe_div(rate)
+    |> trunc_to_tenths()
+  end
+
+  defp e47_detail_foreign_currency_amount(amount, rate, true), do: safe_div(amount, rate)
+  defp e47_detail_foreign_currency_amount(_amount, _rate, false), do: 0
+
+  defp trunc_to_tenths(value) when is_number(value), do: trunc(value * 10) / 10
+  defp trunc_to_tenths(_value), do: 0
 
   defp safe_div(_amount, rate) when rate in [0, 0.0], do: 0
   defp safe_div(nil, _rate), do: 0
@@ -1548,20 +1602,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     end)
   end
 
-  defp supplier_phone_list(payload) do
-    payload
-    |> value_from_keys([
-      "tablaTelefonoComprador",
-      "tabla_telefono_comprador",
-      "telefonoComprador",
-      "telefono_comprador",
-      "partner_phone",
-      "phone"
-    ])
-    |> normalize_phone_candidates()
-
-  end
-
   defp buyer_phone_list(payload) do
     payload
     |> value_from_keys([
@@ -1573,23 +1613,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "phone"
     ])
     |> normalize_phone_candidates()
-  end
-
-  defp emisor_phone_list(payload, fallback \\ []) do
-    payload
-    |> value_from_keys([
-      "tablaTelefonoEmisor",
-      "tabla_telefono_emisor",
-      "telefonoEmisor",
-      "telefono_emisor",
-      "partner_phone",
-      "phone"
-    ])
-    |> normalize_phone_candidates()
-    |> case do
-      [] -> fallback
-      phones -> phones
-    end
   end
 
   defp normalize_phone_candidates(value) when is_list(value) do
@@ -1618,16 +1641,15 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp normalize_rnc(nil), do: nil
   defp normalize_rnc(false), do: nil
-  defp normalize_rnc(value) when is_integer(value), do: value
-  defp normalize_rnc(value) when is_float(value), do: trunc(value)
+  defp normalize_rnc(value) when is_integer(value), do: Integer.to_string(value)
+  defp normalize_rnc(value) when is_float(value), do: value |> trunc() |> Integer.to_string()
 
   defp normalize_rnc(value) when is_binary(value) do
     digits = Regex.replace(~r/\D/, String.trim(value), "")
 
     case digits do
       "" -> nil
-      <<"0", _::binary>> = number -> number
-      number -> String.to_integer(number)
+      number -> number
     end
   end
 

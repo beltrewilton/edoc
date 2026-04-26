@@ -1,0 +1,82 @@
+{
+  "encabezado": {
+    "idDoc": {
+      "encf": "E470000000101",
+      "tipoeCF": 47,
+      "bancoPago": "",
+      "tablaFormasPago": [],
+      "numeroCuentaPago": "",
+      "fechaVencimientoSecuencia": "31-12-2028"
+    },
+    "emisor": {
+      "webSite": "",
+      "rncEmisor": "371765811",
+      "correoEmisor": "",
+      "fechaEmision": "09-04-2026",
+      "direccionEmisor": "5713 NW 114th Ct Apt 105, Las Brisas, Doral, Florida, Estados Unidos",
+      "nombreComercial": "C1C Consulting Services LLC",
+      "razonSocialEmisor": "C1C Consulting Services LLC",
+      "numeroPedidoInterno": "CEXT/2026/04/0002",
+      "tablaTelefonoEmisor": [
+        "+58 212-9352678"
+      ],
+      "numeroFacturaInterna": ""
+    },
+    "totales": {
+      "montoTotal": "10000.00",
+      "montoExento": "10000.00",
+      "totalISRRetencion": "0.00",
+      "impuestosAdicionales": []
+    },
+    "version": "1.0",
+    "comprador": {
+      "razonSocialComprador": "FLOVELZ SRL",
+      "identificadorExtranjero": "302"
+    },
+    "otraMoneda": {
+      "tipoCambio": "0.00",
+      "tipoMoneda": "",
+      "montoTotalOtraMoneda": "0.00",
+      "montoExentoOtraMoneda": "0.00",
+      "impuestosAdicionalesOtraMoneda": []
+    }
+  },
+  "paginacion": [],
+  "subtotales": [
+    {
+      "orden": 1,
+      "lineas": 1,
+      "montoSubTotal": "10000.00",
+      "numeroSubTotal": 1,
+      "subTotalExento": "10000.00",
+      "descripcionSubtotal": "N/A"
+    }
+  ],
+  "detallesItems": [
+    {
+      "montoItem": "10000.00",
+      "retencion": {
+        "montoISRRetenido": "0.00",
+        "indicadorAgenteRetencionoPercepcion": 1
+      },
+      "nombreItem": "Consultoria Extractor para SAP S/4HANA",
+      "numeroLinea": 1,
+      "cantidadItem": 2,
+      "unidadMedida": "43",
+      "tablaSubRecargo": [],
+      "tablaCodigosItem": [],
+      "tablaSubcantidad": [],
+      "otraMonedaDetalle": {
+        "precioOtraMoneda": "0.00",
+        "montoItemOtraMoneda": "0.00"
+      },
+      "tablaSubDescuento": [],
+      "precioUnitarioItem": "5000.00",
+      "indicadorFacturacion": 4,
+      "indicadorBienoServicio": 1,
+      "tablaImpuestoAdicional": []
+    }
+  ],
+  "fechaHoraFirma": "14-04-2026 00:44:41",
+  "descuentosORecargos": []
+}

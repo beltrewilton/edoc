@@ -1,0 +1,73 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 41,
+      "encf": "E410000000101",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoPago": 2,
+      "FechaLimitePago": "20-04-2026",
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "2950.00"
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "fechaEmision": "11-04-2026"
+    },
+    "comprador": {
+      "rncComprador": "131775502",
+      "razonSocialComprador": "Rojas Lee Rojas & Compañía SRL",
+      "correoComprador": "",
+      "direccionComprador": "C/Cigua Palmera No. 5, Manzana B Residencial Villas Claudia FECHA: 30/5/2023 Altos de Arroyo Hondo ",
+      "municipioComprador": "010101",
+      "provinciaComprador": "010000"
+    },
+    "totales": {
+      "montoGravadoTotal": "2500.00",
+      "montoGravadoI1": "2500.00",
+      "itbis1": 18,
+      "totalITBIS": "450.00",
+      "totalITBIS1": "450.00",
+      "impuestosAdicionales": [],
+      "montoTotal": "2950.00",
+      "valorPagar": "2950.00",
+      "totalITBISRetenido": "450.00",
+      "totalISRRetencion": "0.00"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoITBISRetenido": "450.00",
+        "montoISRRetenido": "0.00"
+      },
+      "nombreItem": "Consultor SAP",
+      "indicadorBienoServicio": 2,
+      "descripcionItem": "Consultor SAP",
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "2500.00",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "2500.00"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "14-04-2026 00:33:31"
+}

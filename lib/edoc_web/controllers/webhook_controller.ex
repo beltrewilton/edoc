@@ -112,6 +112,7 @@ defmodule EdocWeb.WebhookController do
                payload
                |> enrich_with_invoice_items(invoice_data)
                |> enrich_with_invoice_partner(client, uid, invoice_data)
+               |> enrich_with_invoice_currency(client, uid, invoice_data)
                |> enrich_with_referenced_ncf_data(client, uid) do
           {:ok, enriched_payload, {client, uid}}
         end
@@ -153,6 +154,18 @@ defmodule EdocWeb.WebhookController do
          %{} = partner <- Odoo.get_invoice_partner_data(client, uid, partner_id) do
       payload
       |> Map.merge(partner_payload(role, partner))
+    else
+      _ -> payload
+    end
+  end
+
+  defp enrich_with_invoice_currency(payload, %Odoo{} = client, uid, invoice_data) do
+    with currency_id when is_integer(currency_id) <- invoice_currency_id(invoice_data),
+         %{} = currency <-
+           Odoo.get_currency_by_id(client, uid, currency_id, nil, currency_context(invoice_data)) do
+      payload
+      |> put_if_missing("currency", currency_code(currency))
+      |> put_if_missing("tipo_cambio", currency_exchange_rate(currency))
     else
       _ -> payload
     end
@@ -211,6 +224,56 @@ defmodule EdocWeb.WebhookController do
   end
 
   defp invoice_partner_id(_), do: nil
+
+  defp invoice_currency_id(%{invoice: %{} = invoice}) do
+    invoice
+    |> Map.get("currency_id")
+    |> normalize_odoo_reference_id()
+  end
+
+  defp invoice_currency_id(_), do: nil
+
+  defp currency_context(%{invoice: %{} = invoice}) do
+    %{}
+    |> put_if_present(:date, normalize_payload_string(Map.get(invoice, "invoice_date")))
+    |> put_if_present(:company_id, normalize_odoo_reference_id(Map.get(invoice, "company_id")))
+  end
+
+  defp currency_context(_), do: %{}
+
+  defp currency_code(currency) do
+    currency
+    |> Map.get("name")
+    |> normalize_payload_string()
+  end
+
+  defp currency_exchange_rate(currency) do
+    inverse_rate = numeric_value(Map.get(currency, "inverse_rate"))
+    rate = numeric_value(Map.get(currency, "rate"))
+
+    cond do
+      positive_number?(inverse_rate) -> inverse_rate
+      positive_number?(rate) -> 1 / rate
+      true -> nil
+    end
+  end
+
+  defp numeric_value(nil), do: nil
+  defp numeric_value(false), do: nil
+  defp numeric_value(value) when is_integer(value), do: value
+  defp numeric_value(value) when is_float(value), do: value
+
+  defp numeric_value(value) when is_binary(value) do
+    case Float.parse(String.trim(value)) do
+      {number, ""} -> number
+      _ -> nil
+    end
+  end
+
+  defp numeric_value(_), do: nil
+
+  defp positive_number?(value) when is_integer(value) or is_float(value), do: value > 0
+  defp positive_number?(_), do: false
 
   defp normalize_odoo_reference_id([id | _rest]) when is_integer(id), do: id
   defp normalize_odoo_reference_id([id | _rest]) when is_binary(id), do: normalize_invoice_id(id)
@@ -387,6 +450,17 @@ defmodule EdocWeb.WebhookController do
     do: to_string(value)
 
   defp normalize_payload_string(_), do: nil
+
+  defp put_if_missing(map, _key, value) when value in [nil, "", []], do: map
+
+  defp put_if_missing(map, key, value) do
+    case Map.get(map, key) do
+      nil -> Map.put(map, key, value)
+      false -> Map.put(map, key, value)
+      "" -> Map.put(map, key, value)
+      _ -> map
+    end
+  end
 
   defp put_if_present(map, _key, value) when value in [nil, "", []], do: map
   defp put_if_present(map, key, value), do: Map.put(map, key, value)

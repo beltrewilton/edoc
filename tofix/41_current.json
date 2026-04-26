@@ -1,0 +1,72 @@
+{
+  "encabezado": {
+    "idDoc": {
+      "encf": "E410000000101",
+      "tipoeCF": 41,
+      "tipoPago": 2,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "2950.00"
+        }
+      ],
+      "indicadorMontoGravado": 0,
+      "fechaVencimientoSecuencia": "31-12-2028"
+    },
+    "emisor": {
+      "rncEmisor": "131775502",
+      "fechaEmision": "11-04-2026",
+      "direccionEmisor": "C/Cigua Palmera No. 5, Manzana B Residencial Villas Claudia FECHA: 30/5/2023 Altos de Arroyo Hondo I, Santo Domingo, República Dominicana",
+      "razonSocialEmisor": "Rojas Lee Rojas & Compañía SRL",
+      "tablaTelefonoEmisor": []
+    },
+    "totales": {
+      "itbis1": 18,
+      "montoTotal": "2950.00",
+      "totalITBIS": "450.00",
+      "valorPagar": "2950.00",
+      "totalITBIS1": "450.00",
+      "montoGravadoI1": "2500.00",
+      "montoGravadoTotal": "2500.00",
+      "totalISRRetencion": "0.00",
+      "totalITBISRetenido": "450.00",
+      "impuestosAdicionales": []
+    },
+    "version": "1.0",
+    "comprador": {
+      "rncComprador": "132190068",
+      "correoComprador": "",
+      "direccionComprador": "",
+      "municipioComprador": "010101",
+      "provinciaComprador": "010000",
+      "razonSocialComprador": "FLOVELZ SRL"
+    }
+  },
+  "paginacion": [],
+  "subtotales": [],
+  "detallesItems": [
+    {
+      "montoItem": "2500.00",
+      "retencion": {
+        "montoISRRetenido": "0.00",
+        "montoITBISRetenido": "450.00",
+        "indicadorAgenteRetencionoPercepcion": 1
+      },
+      "nombreItem": "Consultor SAP",
+      "numeroLinea": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "descripcionItem": "Consultor SAP",
+      "tablaSubRecargo": [],
+      "tablaCodigosItem": [],
+      "tablaSubcantidad": [],
+      "tablaSubDescuento": [],
+      "precioUnitarioItem": "2500.00",
+      "indicadorFacturacion": 1,
+      "indicadorBienoServicio": 2,
+      "tablaImpuestoAdicional": []
+    }
+  ],
+  "fechaHoraFirma": "14-04-2026 00:33:31",
+  "descuentosORecargos": []
+}

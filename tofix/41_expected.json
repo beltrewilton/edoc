@@ -1,0 +1,73 @@
+{
+  "descuentosORecargos": [],
+  "detallesItems": [
+    {
+      "cantidadItem": 1,
+      "descripcionItem": "Consultor SAP",
+      "indicadorBienoServicio": 2,
+      "indicadorFacturacion": 1,
+      "montoItem": "2500.00",
+      "nombreItem": "Consultor SAP",
+      "numeroLinea": 1,
+      "precioUnitarioItem": "2500.00",
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": "0.00",
+        "montoITBISRetenido": "450.00"
+      },
+      "tablaCodigosItem": [],
+      "tablaImpuestoAdicional": [],
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaSubcantidad": [],
+      "unidadMedida": "43"
+    }
+  ],
+  "encabezado": {
+    "comprador": {
+      "correoComprador": "",
+      "direccionComprador": "C/Cigua Palmera No. 5, Manzana B Residencial Villas Claudia FECHA: 30/5/2023 Altos de Arroyo Hondo I, Santo Domingo, República Dominicana",
+      "municipioComprador": "010101",
+      "provinciaComprador": "010000",
+      "razonSocialComprador": "Rojas Lee Rojas & Compañía SRL",
+      "rncComprador": "131775502"
+    },
+    "emisor": {
+      "direccionEmisor": "N/A", //TODO: 'N/A' IF "FLOVELZ SRL" address is empty or nil.
+      "fechaEmision": "11-04-2026",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "rncEmisor": "132190068",
+      "tablaTelefonoEmisor": []
+    },
+    "idDoc": {
+      "encf": "E410000000101",
+      "FechaLimitePago": "20-04-2026",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0, //TODO: 0 IF `tax_groups` array has any explicit tax
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "2950.00"
+        }
+      ],
+      "tipoPago": 2,
+      "tipoeCF": 41
+    },
+    "totales": {
+      "impuestosAdicionales": [],
+      "itbis1": 18,
+      "montoGravadoI1": "2500.00",
+      "montoGravadoTotal": "2500.00",
+      "montoTotal": "2950.00",
+      "totalISRRetencion": "0.00",
+      "totalITBIS": "450.00",
+      "totalITBIS1": "450.00",
+      "totalITBISRetenido": "450.00",
+      "valorPagar": "2950.00"
+    },
+    "version": "1.0"
+  },
+  "fechaHoraFirma": "14-04-2026 00:33:31",
+  "paginacion": [],
+  "subtotales": []
+}

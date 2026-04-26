@@ -3,6 +3,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
 
   alias Edoc.Accounts
   alias Edoc.Accounts.Company
+  alias Edoc.Etaxcore.PayloadJson
   alias Phoenix.PubSub
   alias Decimal
   alias Jason
@@ -611,7 +612,7 @@ defmodule EdocWeb.CompanyTransactionsLive do
   defp encode_payload(nil), do: "No payload yet"
 
   defp encode_payload(map) when is_map(map) do
-    Jason.encode!(map, pretty: true)
+    PayloadJson.encode!(map, pretty: true)
   end
 
   defp encode_payload(other) do

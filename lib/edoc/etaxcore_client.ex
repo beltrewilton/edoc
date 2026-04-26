@@ -10,6 +10,7 @@ defmodule Edoc.EtaxcoreClient do
   """
 
   alias Edoc.Accounts.Company
+  alias Edoc.Etaxcore.PayloadJson
 
   require Logger
 
@@ -66,7 +67,7 @@ defmodule Edoc.EtaxcoreClient do
             {"accept", "application/json"},
             {"api-key", api_key}
           ],
-          json: payload
+          body: PayloadJson.encode!(payload)
         )
 
       case Req.request(req) do

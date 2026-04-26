@@ -6,6 +6,7 @@ defmodule Edoc.Etaxcore.InvoiceService do
   alias Edoc.Accounts
   alias Edoc.Accounts.Company
   alias Edoc.Etaxcore.PayloadMapper
+  alias Edoc.Etaxcore.PayloadJson
   alias Edoc.EtaxcoreClient
   alias Edoc.OdooAutomationClient, as: Odoo
   alias Edoc.Repo
@@ -399,7 +400,7 @@ defmodule Edoc.Etaxcore.InvoiceService do
 
   defp print_json(label, value) do
     output =
-      case Jason.encode(value, pretty: true) do
+      case encode_log_json(value) do
         {:ok, json} -> json
         {:error, _reason} -> inspect(value, pretty: true, limit: :infinity)
       end
@@ -407,6 +408,9 @@ defmodule Edoc.Etaxcore.InvoiceService do
     IO.puts("#{label}:")
     IO.puts(output)
   end
+
+  defp encode_log_json(value) when is_map(value), do: PayloadJson.encode(value, pretty: true)
+  defp encode_log_json(value), do: Jason.encode(value, pretty: true)
 
   defp format_reason(%_{__exception__: true} = exception), do: Exception.message(exception)
   defp format_reason(reason), do: inspect(reason)

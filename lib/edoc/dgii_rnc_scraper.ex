@@ -15,14 +15,27 @@ defmodule Edoc.DgiiRncScraper do
   defmodule Result do
     @moduledoc "Normalized DGII RNC lookup result."
 
-    @enforce_keys [:tax_id, :legal_name, :economic_activity, :local_administration]
-    defstruct [:tax_id, :legal_name, :economic_activity, :local_administration]
+    @enforce_keys [
+      :tax_id,
+      :legal_name,
+      :economic_activity,
+      :local_administration,
+      :electronic_invoicer
+    ]
+    defstruct [
+      :tax_id,
+      :legal_name,
+      :economic_activity,
+      :local_administration,
+      :electronic_invoicer
+    ]
 
     @type t :: %__MODULE__{
             tax_id: String.t(),
             legal_name: String.t(),
             economic_activity: String.t(),
-            local_administration: String.t()
+            local_administration: String.t(),
+            electronic_invoicer: String.t()
           }
   end
 
@@ -34,7 +47,8 @@ defmodule Edoc.DgiiRncScraper do
     tax_id: ["Cédula/RNC", "RNC/Cédula"],
     legal_name: ["Nombre/Razón Social"],
     economic_activity: ["Actividad Económica", "Actividad Economica"],
-    local_administration: ["Administración Local", "Administracion Local"]
+    local_administration: ["Administración Local", "Administracion Local"],
+    electronic_invoicer: ["Facturador Electrónico", "Facturador Electronico"]
   }
   @not_found_messages [
     "No se encontraron datos",
@@ -358,7 +372,8 @@ defmodule Edoc.DgiiRncScraper do
       tax_id: value_for(lines, Map.fetch!(@field_labels, :tax_id)),
       legal_name: value_for(lines, Map.fetch!(@field_labels, :legal_name)),
       economic_activity: value_for(lines, Map.fetch!(@field_labels, :economic_activity)),
-      local_administration: value_for(lines, Map.fetch!(@field_labels, :local_administration))
+      local_administration: value_for(lines, Map.fetch!(@field_labels, :local_administration)),
+      electronic_invoicer: value_for(lines, Map.fetch!(@field_labels, :electronic_invoicer))
     }
 
     if result_found?(result) do
@@ -384,7 +399,8 @@ defmodule Edoc.DgiiRncScraper do
         result.tax_id,
         result.legal_name,
         result.economic_activity,
-        result.local_administration
+        result.local_administration,
+        result.electronic_invoicer
       ],
       &is_binary/1
     )

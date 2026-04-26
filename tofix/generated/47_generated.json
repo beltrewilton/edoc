@@ -1,0 +1,81 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 47,
+      "encf": "E470000000101",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "FechaLimitePago": "21-04-2026",
+      "tablaFormasPago": [],
+      "numeroCuentaPago": "",
+      "bancoPago": ""
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026040002",
+      "fechaEmision": "09-04-2026"
+    },
+    "comprador": {
+      "identificadorExtranjero": "371765811",
+      "razonSocialComprador": "C1C Consulting Services LLC"
+    },
+    "totales": {
+      "montoExento": "10000.00",
+      "impuestosAdicionales": [],
+      "montoTotal": "10000.00",
+      "totalISRRetencion": "0.00"
+    },
+    "otraMoneda": {
+      "tipoMoneda": "USD",
+      "tipoCambio": "60.00",
+      "montoExentoOtraMoneda": "166.60",
+      "impuestosAdicionalesOtraMoneda": [],
+      "montoTotalOtraMoneda": "166.60"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": "0.00"
+      },
+      "nombreItem": "Consultoria Extractor para SAP S/4HANA",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 2,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "5000.00",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "otraMonedaDetalle": {
+        "precioOtraMoneda": "0.00",
+        "montoItemOtraMoneda": "0.00"
+      },
+      "montoItem": "10000.00"
+    }
+  ],
+  "subtotales": [
+    {
+      "numeroSubTotal": 1,
+      "descripcionSubtotal": "N/A",
+      "orden": 1,
+      "subTotalExento": "10000.00",
+      "montoSubTotal": "10000.00",
+      "lineas": 1
+    }
+  ],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "14-04-2026 00:44:41"
+}

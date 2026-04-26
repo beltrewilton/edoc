@@ -1,0 +1,105 @@
+{
+  "id": 12919,
+  "_id": 12919,
+  "ref": false,
+  "name": "BILL/2026/04/0002",
+  "_model": "account.move",
+  "_action": "Send Webhook Notification (dgii-gw)(#631)",
+  "line_ids": [
+    37194,
+    37195,
+    37196
+  ],
+  "rncEmisor": "1-31-77550-2",
+  "amount_tax": 450,
+  "company_id": 1,
+  "partner_id": 235,
+  "tax_totals": {
+    "subtotals": [
+      {
+        "name": "Subtotal",
+        "tax_amount": 450,
+        "tax_groups": [
+          {
+            "id": 18,
+            "group_name": "ITBIS",
+            "tax_amount": 450,
+            "base_amount": 2500,
+            "group_label": false,
+            "involved_tax_ids": [
+              6
+            ],
+            "display_base_amount": 2500,
+            "tax_amount_currency": 450,
+            "base_amount_currency": 2500,
+            "display_base_amount_currency": 2500
+          }
+        ],
+        "base_amount": 2500,
+        "tax_amount_currency": 450,
+        "base_amount_currency": 2500
+      }
+    ],
+    "tax_amount": 450,
+    "base_amount": 2500,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "total_amount": 2950,
+    "same_tax_base": true,
+    "has_tax_groups": true,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "tax_amount_currency": 450,
+    "base_amount_currency": 2500,
+    "total_amount_currency": 2950,
+    "display_in_company_currency": false
+  },
+  "amount_paid": 0,
+  "amount_total": 2950,
+  "display_name": "BILL/2026/04/0002",
+  "invoice_date": "2026-04-11",
+  "invoice_items": [
+    {
+      "id": 37194,
+      "name": "Consultor SAP",
+      "type": "service",
+      "debit": 2500,
+      "credit": 0,
+      "tax_ids": [
+        6
+      ],
+      "discount": 0,
+      "quantity": 1,
+      "account_id": [
+        174,
+        "51010100 Costos de Bienes"
+      ],
+      "price_unit": 2500,
+      "product_id": [
+        229,
+        "Consultor SAP"
+      ],
+      "price_subtotal": 2500
+    }
+  ],
+  "payment_state": "not_paid",
+  "amount_untaxed": 2500,
+  "invoice_origin": false,
+  "amount_residual": 2950,
+  "direccionEmisor": "C/Cigua Palmera No. 5, Manzana B Residencial Villas Claudia FECHA: 30/5/2023 Altos de Arroyo Hondo I, Santo Domingo, República Dominicana",
+  "nombreComercial": "Rojas Lee Rojas & Compañía SRL",
+  "transaction_ids": [],
+  "invoice_date_due": "2026-04-13",
+  "invoice_line_ids": [
+    37194
+  ],
+  "payment_reference": false,
+  "razonSocialEmisor": "Rojas Lee Rojas & Compañía SRL",
+  "reversed_entry_id": false,
+  "status_in_payment": "not_paid",
+  "x_studio_e_doc_inv": false,
+  "x_studio_e_doc_bill": "E41",
+  "commercial_partner_id": 235,
+  "invoice_payment_term_id": false,
+  "invoice_partner_display_name": "Rojas Lee Rojas & Compañía SRL"
+}

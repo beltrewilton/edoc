@@ -1,0 +1,90 @@
+{
+  "id": 12921,
+  "_id": 12921,
+  "ref": false,
+  "name": "CEXT/2026/04/0002",
+  "_model": "account.move",
+  "_action": "Send Webhook Notification (dgii-gw)(#631)",
+  "line_ids": [
+    37200,
+    37201
+  ],
+  "rncEmisor": "37-1765811",
+  "amount_tax": 0,
+  "company_id": 1,
+  "partner_id": 302,
+  "tax_totals": {
+    "subtotals": [
+      {
+        "name": "Subtotal",
+        "tax_amount": 0,
+        "tax_groups": [],
+        "base_amount": 10000,
+        "tax_amount_currency": 0,
+        "base_amount_currency": 10000
+      }
+    ],
+    "tax_amount": 0,
+    "base_amount": 10000,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "total_amount": 10000,
+    "same_tax_base": true,
+    "has_tax_groups": false,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "tax_amount_currency": 0,
+    "base_amount_currency": 10000,
+    "total_amount_currency": 10000,
+    "display_in_company_currency": false
+  },
+  "amount_paid": 0,
+  "amount_total": 10000,
+  "display_name": "CEXT/2026/04/0002",
+  "invoice_date": "2026-04-09",
+  "invoice_items": [
+    {
+      "id": 37200,
+      "name": "Consultoria Extractor para SAP S/4HANA",
+      "type": "consu",
+      "debit": 10000,
+      "credit": 0,
+      "tax_ids": [],
+      "discount": 0,
+      "quantity": 2,
+      "account_id": [
+        174,
+        "51010100 Costos de Bienes"
+      ],
+      "price_unit": 5000,
+      "product_id": [
+        216,
+        "Consultoria Extractor para SAP S/4HANA"
+      ],
+      "price_subtotal": 10000
+    }
+  ],
+  "payment_state": "not_paid",
+  "amount_untaxed": 10000,
+  "invoice_origin": false,
+  "amount_residual": 10000,
+  "direccionEmisor": "5713 NW 114th Ct Apt 105, Las Brisas, Doral, Florida, Estados Unidos",
+  "nombreComercial": "C1C Consulting Services LLC",
+  "transaction_ids": [],
+  "invoice_date_due": "2026-04-13",
+  "invoice_line_ids": [
+    37200
+  ],
+  "payment_reference": false,
+  "razonSocialEmisor": "C1C Consulting Services LLC",
+  "reversed_entry_id": false,
+  "status_in_payment": "not_paid",
+  "x_studio_e_doc_inv": false,
+  "tablaTelefonoEmisor": [
+    "+58 212-9352678"
+  ],
+  "x_studio_e_doc_bill": "E47",
+  "commercial_partner_id": 302,
+  "invoice_payment_term_id": false,
+  "invoice_partner_display_name": "C1C Consulting Services LLC"
+}

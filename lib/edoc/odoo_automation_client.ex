@@ -507,6 +507,41 @@ defmodule Edoc.OdooAutomationClient do
   end
 
   @doc """
+  Fetch a res.currency record by ID.
+  """
+  @spec get_currency_by_id(
+          t(),
+          integer(),
+          integer() | list() | nil | false,
+          list(String.t()) | nil,
+          map()
+        ) :: map() | nil
+  def get_currency_by_id(client, uid, currency_id, fields \\ nil, context \\ %{})
+  def get_currency_by_id(_client, _uid, nil, _fields, _context), do: nil
+  def get_currency_by_id(_client, _uid, false, _fields, _context), do: nil
+
+  def get_currency_by_id(%__MODULE__{} = client, uid, currency_id, fields, context)
+      when is_map(context) do
+    case many2one_id(currency_id) do
+      nil ->
+        nil
+
+      id ->
+        kwargs =
+          case fields do
+            nil -> %{fields: ["id", "name", "symbol", "rate"]}
+            list when is_list(list) -> %{fields: list}
+          end
+          |> maybe_put_context(context)
+
+        case execute_kw!(client, uid, "res.currency", "read", [[id]], kwargs) do
+          [currency | _] -> currency
+          [] -> nil
+        end
+    end
+  end
+
+  @doc """
   Create x_studio_e_doc custom selection field on given model (default: account.move).
   """
   @spec create_edoc_field(t(), integer(), String.t(), String.t(), String.t(), String.t()) ::
@@ -528,7 +563,6 @@ defmodule Edoc.OdooAutomationClient do
       field_description: field_description,
       model_id: model_id,
       ttype: ttype,
-      # TODO: just check
       required: false,
       store: true,
       help: help,
@@ -767,6 +801,7 @@ defmodule Edoc.OdooAutomationClient do
           "move_type",
           "state",
           "partner_id",
+          "company_id",
           "invoice_date",
           "invoice_date_due",
           "amount_untaxed",
@@ -930,6 +965,9 @@ defmodule Edoc.OdooAutomationClient do
   end
 
   defp maybe_drop_field(lines, _field, false), do: lines
+
+  defp maybe_put_context(kwargs, context) when context == %{}, do: kwargs
+  defp maybe_put_context(kwargs, context), do: Map.put(kwargs, :context, context)
 
   defp many2one_id([id | _]) when is_integer(id), do: id
   defp many2one_id(id) when is_integer(id), do: id

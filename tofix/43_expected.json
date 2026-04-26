@@ -1,0 +1,49 @@
+{
+  "descuentosORecargos": [],
+  "detallesItems": [
+    {
+      "cantidadItem": 1,
+      "indicadorBienoServicio": 1,
+      "indicadorFacturacion": 4,
+      "montoItem": "1000.00",
+      "nombreItem": "Esmalte Negro",
+      "numeroLinea": 1,
+      "precioUnitarioItem": "1000.00",
+      "tablaCodigosItem": [],
+      "tablaImpuestoAdicional": [],
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaSubcantidad": [],
+      "unidadMedida": "43"
+    }
+  ],
+  "encabezado": {
+    "emisor": {
+      "correoEmisor": "",
+      "direccionEmisor": "N/A", //TODO: 'N/A' IF "FLOVELZ SRL" address is empty or nil.
+      "fechaEmision": "10-04-2026",
+      "nombreComercial": "FLOVELZ SRL",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026040002",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "rncEmisor": "132190068",
+      "tablaTelefonoEmisor": [],
+      "webSite": ""
+    },
+    "idDoc": {
+      "encf": "E430000000102",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "tablaFormasPago": [],
+      "tipoeCF": 43
+    },
+    "totales": {
+      "impuestosAdicionales": [],
+      "montoExento": "1000.00",
+      "montoTotal": "1000.00"
+    },
+    "version": "1.0"
+  },
+  "fechaHoraFirma": "16-04-2026 02:21:50",
+  "paginacion": [],
+  "subtotales": []
+}

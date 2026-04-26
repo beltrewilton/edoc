@@ -1,0 +1,105 @@
+{
+  "id": 12924,
+  "_id": 12924,
+  "ref": false,
+  "name": "GASM/2026/04/0002",
+  "_model": "account.move",
+  "_action": "Send Webhook Notification (dgii-gw)(#631)",
+  "line_ids": [
+    37208,
+    37209,
+    37210
+  ],
+  "rncEmisor": "026-0033049-8",
+  "amount_tax": 180,
+  "company_id": 1,
+  "partner_id": 9,
+  "tax_totals": {
+    "subtotals": [
+      {
+        "name": "Subtotal",
+        "tax_amount": 180,
+        "tax_groups": [
+          {
+            "id": 18,
+            "group_name": "ITBIS",
+            "tax_amount": 180,
+            "base_amount": 1000,
+            "group_label": false,
+            "involved_tax_ids": [
+              6
+            ],
+            "display_base_amount": 1000,
+            "tax_amount_currency": 180,
+            "base_amount_currency": 1000,
+            "display_base_amount_currency": 1000
+          }
+        ],
+        "base_amount": 1000,
+        "tax_amount_currency": 180,
+        "base_amount_currency": 1000
+      }
+    ],
+    "tax_amount": 180,
+    "base_amount": 1000,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "total_amount": 1180,
+    "same_tax_base": true,
+    "has_tax_groups": true,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "tax_amount_currency": 180,
+    "base_amount_currency": 1000,
+    "total_amount_currency": 1180,
+    "display_in_company_currency": false
+  },
+  "amount_paid": 0,
+  "amount_total": 1180,
+  "display_name": "GASM/2026/04/0002",
+  "invoice_date": "2026-04-10",
+  "invoice_items": [
+    {
+      "id": 37208,
+      "name": "[ESN] Esmalte Negro",
+      "type": "consu",
+      "debit": 1000,
+      "credit": 0,
+      "tax_ids": [
+        6
+      ],
+      "discount": 0,
+      "quantity": 1,
+      "account_id": [
+        174,
+        "51010100 Costos de Bienes"
+      ],
+      "price_unit": 1000,
+      "product_id": [
+        119,
+        "[ESN] Esmalte Negro"
+      ],
+      "price_subtotal": 1000
+    }
+  ],
+  "payment_state": "not_paid",
+  "amount_untaxed": 1000,
+  "invoice_origin": false,
+  "amount_residual": 1180,
+  "direccionEmisor": "809-417-5011, Punta Cana",
+  "nombreComercial": "Tomás Rodriguez",
+  "transaction_ids": [],
+  "invoice_date_due": "2026-04-15",
+  "invoice_line_ids": [
+    37208
+  ],
+  "payment_reference": false,
+  "razonSocialEmisor": "Tomás Rodriguez",
+  "reversed_entry_id": false,
+  "status_in_payment": "not_paid",
+  "x_studio_e_doc_inv": false,
+  "x_studio_e_doc_bill": "E43",
+  "commercial_partner_id": 9,
+  "invoice_payment_term_id": false,
+  "invoice_partner_display_name": "Tomás Rodriguez"
+}

@@ -103,6 +103,7 @@ defmodule Edoc.DgiiRncScraperTest do
               <tr><th>Nombre/Razón Social</th><td>KOI CORPORATION BY SAIKOV SRL</td></tr>
               <tr><th>Actividad Economica</th><td>SERVICIOS DE TELEMARKETING Y/O PROFESIONAL MERCADEO</td></tr>
               <tr><th>Administracion Local</th><td>ADM LOCAL LOS PRÓCERES</td></tr>
+              <tr><th>Facturador Electronico</th><td>Sí</td></tr>
             </table>
           </div>
         </body>
@@ -114,7 +115,8 @@ defmodule Edoc.DgiiRncScraperTest do
                 tax_id: "132-62095-1",
                 legal_name: "KOI CORPORATION BY SAIKOV SRL",
                 economic_activity: "SERVICIOS DE TELEMARKETING Y/O PROFESIONAL MERCADEO",
-                local_administration: "ADM LOCAL LOS PRÓCERES"
+                local_administration: "ADM LOCAL LOS PRÓCERES",
+                electronic_invoicer: "Sí"
               }} = DgiiRncScraper.extract_result(html)
     end
 

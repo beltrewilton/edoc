@@ -1,0 +1,83 @@
+{
+  "descuentosORecargos": [],
+  "detallesItems": [
+    {
+      "cantidadItem": 2,
+      "indicadorBienoServicio": 2,
+      "indicadorFacturacion": 4,
+      "montoItem": "10000.00",
+      "nombreItem": "Consultoria Extractor para SAP S/4HANA",
+      "numeroLinea": 1,
+      "otraMonedaDetalle": {
+        "montoItemOtraMoneda": "0.00",
+        "precioOtraMoneda": "0.00"
+      },
+      "precioUnitarioItem": "5000.00",
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": "0.00"
+      },
+      "tablaCodigosItem": [],
+      "tablaImpuestoAdicional": [],
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaSubcantidad": [],
+      "unidadMedida": "43"
+    }
+  ],
+  "encabezado": {
+    "comprador": {
+      "identificadorExtranjero": "371765811",
+      "razonSocialComprador": "C1C Consulting Services LLC"
+    },
+    "emisor": {
+      "correoEmisor": "",
+      "direccionEmisor": "N/A", //TODO: 'N/A' IF "FLOVELZ SRL" address is empty or nil.
+      "fechaEmision": "09-04-2026",
+      "nombreComercial": "FLOVELZ SRL",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026040002",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "rncEmisor": "132190068",
+      "tablaTelefonoEmisor": [
+
+      ],
+      "webSite": ""
+    },
+    "idDoc": {
+      "bancoPago": "",
+      "FechaLimitePago": "21-04-2026",
+      "encf": "E470000000101",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "numeroCuentaPago": "",
+      "tablaFormasPago": [],
+      "tipoeCF": 47
+    },
+    "otraMoneda": {
+      "impuestosAdicionalesOtraMoneda": [],
+      "montoExentoOtraMoneda": "166.60",
+      "montoTotalOtraMoneda": "166.60",
+      "tipoCambio": "60.00",
+      "tipoMoneda": "USD"
+    },
+    "totales": {
+      "impuestosAdicionales": [],
+      "montoExento": "10000.00",
+      "montoTotal": "10000.00",
+      "totalISRRetencion": "0.00"
+    },
+    "version": "1.0"
+  },
+  "fechaHoraFirma": "14-04-2026 00:44:41",
+  "paginacion": [],
+  "subtotales": [
+    {
+      "descripcionSubtotal": "N/A",
+      "lineas": 1,
+      "montoSubTotal": "10000.00",
+      "numeroSubTotal": 1,
+      "orden": 1,
+      "subTotalExento": "10000.00"
+    }
+  ]
+}

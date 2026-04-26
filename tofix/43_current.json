@@ -1,0 +1,62 @@
+{
+  "encabezado": {
+    "idDoc": {
+      "encf": "E430000000102",
+      "tipoeCF": 43,
+      "tablaFormasPago": [],
+      "fechaVencimientoSecuencia": "31-12-2028"
+    },
+    "emisor": {
+      "webSite": "",
+      "rncEmisor": "02600330498",
+      "correoEmisor": "",
+      "fechaEmision": "10-04-2026",
+      "direccionEmisor": "809-417-5011, Punta Cana",
+      "nombreComercial": "Tomás Rodriguez",
+      "razonSocialEmisor": "Tomás Rodriguez",
+      "numeroPedidoInterno": "GASM/2026/04/0002",
+      "tablaTelefonoEmisor": [],
+      "numeroFacturaInterna": ""
+    },
+    "totales": {
+      "montoTotal": "1180.00",
+      "montoExento": "1000.00",
+      "impuestosAdicionales": []
+    },
+    "version": "1.0",
+    "comprador": {
+      "fechaEntrega": "15-04-2026",
+      "rncComprador": "132190068",
+      "correoComprador": "",
+      "fechaOrdenCompra": "10-04-2026",
+      "contactoComprador": "FLOVELZ SRL",
+      "numeroOrdenCompra": "GASM/2026/04/0002",
+      "direccionComprador": "",
+      "municipioComprador": "010101",
+      "provinciaComprador": "010000",
+      "razonSocialComprador": "FLOVELZ SRL",
+      "codigoInternoComprador": "a1fde0a1-4cbe-433d-b9e4-3ec654338a14"
+    }
+  },
+  "paginacion": [],
+  "subtotales": [],
+  "detallesItems": [
+    {
+      "montoItem": "1000.00",
+      "nombreItem": "Esmalte Negro",
+      "numeroLinea": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubRecargo": [],
+      "tablaCodigosItem": [],
+      "tablaSubcantidad": [],
+      "tablaSubDescuento": [],
+      "precioUnitarioItem": "1000.00",
+      "indicadorFacturacion": 4,
+      "indicadorBienoServicio": 1,
+      "tablaImpuestoAdicional": []
+    }
+  ],
+  "fechaHoraFirma": "16-04-2026 02:21:50",
+  "descuentosORecargos": []
+}
