@@ -187,6 +187,59 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
            }
   end
 
+  test "uses total currency amounts for exempt foreign-currency totals outside E47" do
+    payload = %{
+      "_id" => 32_133,
+      "invoice_date" => "2026-04-27",
+      "invoice_date_due" => "2026-04-27",
+      "invoice_partner_display_name" => "Consumidor Final USD",
+      "currency" => "USD",
+      "tipo_cambio" => 59.24,
+      "x_studio_e_doc_inv" => "E32",
+      "tax_totals" => %{
+        "base_amount" => 51_835.0,
+        "base_amount_currency" => 875.0,
+        "tax_amount" => -13_995.45,
+        "tax_amount_currency" => -236.25,
+        "total_amount" => 37_839.55,
+        "total_amount_currency" => 638.75
+      },
+      "invoice_items" => [
+        %{
+          "name" => "Servicio de Consultoria",
+          "price_subtotal" => 875.0,
+          "price_unit" => 25.0,
+          "quantity" => 35.0,
+          "tax_ids" => []
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e32(payload, company, e_doc: "E320000000133")
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => money(37_839.55),
+             "impuestosAdicionales" => [],
+             "montoTotal" => money(37_839.55)
+           }
+
+    assert mapped["encabezado"]["otraMoneda"] == %{
+             "tipoMoneda" => "USD",
+             "tipoCambio" => money(59.24),
+             "montoExentoOtraMoneda" => money(638.75),
+             "impuestosAdicionalesOtraMoneda" => [],
+             "montoTotalOtraMoneda" => money(638.75)
+           }
+
+    assert [
+             %{
+               "precioUnitarioItem" => money(1081.13),
+               "montoItem" => money(37_839.55)
+             }
+           ] = mapped["detallesItems"]
+  end
+
   test "maps E32 odoo payload into the target etax shape" do
     payload = %{
       "_id" => 22_287,
@@ -1090,7 +1143,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     mapped = PayloadMapper.map_e47(payload, company, e_doc: "E470000000133")
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoExento" => money(51_835.0),
+             "montoExento" => money(37_839.55),
              "impuestosAdicionales" => [],
              "montoTotal" => money(37_839.55),
              "totalISRRetencion" => money(13_995.45)
@@ -1099,15 +1152,15 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["otraMoneda"] == %{
              "tipoMoneda" => "USD",
              "tipoCambio" => money(59.24),
-             "montoExentoOtraMoneda" => money(875.0),
+             "montoExentoOtraMoneda" => money(638.75),
              "impuestosAdicionalesOtraMoneda" => [],
              "montoTotalOtraMoneda" => money(638.75)
            }
 
     assert [
              %{
-               "precioUnitarioItem" => money(1481.0),
-               "montoItem" => money(51_835.0),
+               "precioUnitarioItem" => money(1081.13),
+               "montoItem" => money(37_839.55),
                "retencion" => %{
                  "montoISRRetenido" => money(13_995.45)
                },
@@ -1123,7 +1176,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "numeroSubTotal" => 1,
                "descripcionSubtotal" => "N/A",
                "orden" => 1,
-               "subTotalExento" => money(51_835.0),
+               "subTotalExento" => money(37_839.55),
                "montoSubTotal" => money(37_839.55),
                "lineas" => 1
              }

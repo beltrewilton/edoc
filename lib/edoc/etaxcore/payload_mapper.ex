@@ -735,10 +735,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_totales_e47(payload) do
+    monto_total = amount_total(payload)
+
     %{
-      "montoExento" => amount_exempt(payload),
+      "montoExento" => monto_total,
       "impuestosAdicionales" => [],
-      "montoTotal" => amount_total(payload),
+      "montoTotal" => monto_total,
       "totalISRRetencion" => e47_tax_amount(payload)
     }
   end
@@ -834,7 +836,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "montoExentoOtraMoneda",
       Map.has_key?(totales, "montoExento"),
       explicit_otra_amount(payload, ["montoExentoOtraMoneda", "monto_exento_otra_moneda"]) ||
-        base_amount_currency
+        total_amount_currency
     )
     |> maybe_put_otra_amount(
       "totalITBISOtraMoneda",
@@ -921,7 +923,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           "numeroSubTotal" => 1,
           "descripcionSubtotal" => "N/A",
           "orden" => 1,
-          "subTotalExento" => amount_exempt(payload),
+          "subTotalExento" => amount_total(payload),
           "montoSubTotal" => amount_total(payload),
           "lineas" => max(length(invoice_items(payload)), 1)
         }
@@ -1357,6 +1359,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp derived_unit_price(amount, quantity), do: amount / quantity
 
   defp convert_item_amount(amount, %{} = item) when is_number(amount) do
+    amount = amount * (numeric(Map.get(item, "__tax_excluded_factor")) || 1)
+
     case Map.get(item, "__exchange_rate") do
       rate when is_integer(rate) or is_float(rate) -> amount * rate
       _ -> amount
@@ -1382,9 +1386,10 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp amount_exempt(payload) do
-    tax_totals_value(payload, "base_amount") ||
+    tax_totals_value(payload, "total_amount") ||
+      numeric(payload_value(payload, "amount_total")) ||
       numeric(payload_value(payload, "amount_untaxed")) ||
-      amount_total(payload)
+      0
   end
 
   defp itbis_rate(payload, monto_gravado, total_itbis) do
@@ -1548,9 +1553,26 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
     if original_currency_items?(payload, items) do
       exchange_rate = explicit_exchange_rate(payload)
-      Enum.map(items, &Map.put(&1, "__exchange_rate", exchange_rate))
+      tax_excluded_factor = tax_excluded_currency_factor(payload)
+
+      Enum.map(items, fn item ->
+        item
+        |> Map.put("__exchange_rate", exchange_rate)
+        |> Map.put("__tax_excluded_factor", tax_excluded_factor)
+      end)
     else
       items
+    end
+  end
+
+  defp tax_excluded_currency_factor(payload) do
+    base_amount_currency = tax_totals_value(payload, "base_amount_currency")
+    total_amount_currency = tax_totals_value(payload, "total_amount_currency")
+
+    cond do
+      is_nil(base_amount_currency) or zero_amount?(base_amount_currency) -> 1
+      is_nil(total_amount_currency) -> 1
+      true -> total_amount_currency / base_amount_currency
     end
   end
 
