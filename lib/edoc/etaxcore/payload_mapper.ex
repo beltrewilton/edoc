@@ -1075,10 +1075,10 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "otraMonedaDetalle" => %{
           "precioOtraMoneda" =>
             numeric(value_from_keys(item, ["precioOtraMoneda", "precio_otra_moneda"])) ||
-              unit_price,
+              item_unit_price_original(item),
           "montoItemOtraMoneda" =>
             numeric(value_from_keys(item, ["montoItemOtraMoneda", "monto_item_otra_moneda"])) ||
-              amount
+              item_amount_original(item, quantity)
         },
         "montoItem" => amount
       }
@@ -1306,6 +1306,12 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp item_quantity(item), do: numeric(payload_value(item, "quantity")) || 0
 
   defp item_unit_price(item) do
+    item
+    |> item_unit_price_original()
+    |> convert_item_amount(item)
+  end
+
+  defp item_unit_price_original(item) do
     numeric(payload_value(item, "price_unit")) ||
       derived_unit_price(
         numeric(payload_value(item, "price_subtotal")),
@@ -1314,14 +1320,29 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp item_amount(item, quantity, unit_price) do
+    case numeric(payload_value(item, "price_subtotal")) do
+      nil ->
+        numeric(payload_value(item, "debit")) ||
+          numeric(payload_value(item, "credit")) ||
+          quantity * unit_price
+
+      amount ->
+        convert_item_amount(amount, item)
+    end
+  end
+
+  defp item_amount_original(item, quantity) do
     numeric(payload_value(item, "price_subtotal")) ||
       numeric(payload_value(item, "debit")) ||
       numeric(payload_value(item, "credit")) ||
-      quantity * unit_price
+      quantity * item_unit_price_original(item)
   end
 
   defp item_total(item, amount) do
-    numeric(payload_value(item, "price_total")) || amount
+    case numeric(payload_value(item, "price_total")) do
+      nil -> amount
+      total -> convert_item_amount(total, item)
+    end
   end
 
   defp item_itbis_retenido(item, amount) do
@@ -1335,25 +1356,34 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp derived_unit_price(_amount, quantity) when quantity in [0, 0.0, nil], do: nil
   defp derived_unit_price(amount, quantity), do: amount / quantity
 
+  defp convert_item_amount(amount, %{} = item) when is_number(amount) do
+    case Map.get(item, "__exchange_rate") do
+      rate when is_integer(rate) or is_float(rate) -> amount * rate
+      _ -> amount
+    end
+  end
+
+  defp convert_item_amount(amount, _item), do: amount
+
   defp amount_total(payload) do
-    numeric(payload_value(payload, "amount_total")) || tax_totals_value(payload, "total_amount") ||
+    tax_totals_value(payload, "total_amount") || numeric(payload_value(payload, "amount_total")) ||
       0
   end
 
   defp amount_untaxed(payload) do
-    numeric(payload_value(payload, "amount_untaxed")) ||
-      tax_totals_value(payload, "base_amount") ||
+    tax_totals_value(payload, "base_amount") ||
+      numeric(payload_value(payload, "amount_untaxed")) ||
       max(amount_total(payload) - amount_tax(payload), 0)
   end
 
   defp amount_tax(payload) do
-    numeric(value_from_keys(payload, ["amount_tax", "tax_amount"])) ||
-      tax_totals_value(payload, "tax_amount") || 0
+    tax_totals_value(payload, "tax_amount") ||
+      numeric(value_from_keys(payload, ["amount_tax", "tax_amount"])) || 0
   end
 
   defp amount_exempt(payload) do
-    numeric(payload_value(payload, "amount_untaxed")) ||
-      tax_totals_value(payload, "base_amount") ||
+    tax_totals_value(payload, "base_amount") ||
+      numeric(payload_value(payload, "amount_untaxed")) ||
       amount_total(payload)
   end
 
@@ -1510,11 +1540,43 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp invoice_items(payload) do
-    payload
-    |> payload_value("invoice_items")
-    |> List.wrap()
-    |> Enum.map(&normalize_item/1)
+    items =
+      payload
+      |> payload_value("invoice_items")
+      |> List.wrap()
+      |> Enum.map(&normalize_item/1)
+
+    if original_currency_items?(payload, items) do
+      exchange_rate = explicit_exchange_rate(payload)
+      Enum.map(items, &Map.put(&1, "__exchange_rate", exchange_rate))
+    else
+      items
+    end
   end
+
+  defp original_currency_items?(payload, items) do
+    cond do
+      not foreign_currency_payload?(payload) ->
+        false
+
+      not is_number(tax_totals_value(payload, "base_amount_currency")) ->
+        false
+
+      true ->
+        line_subtotal =
+          Enum.reduce(items, 0, fn item, total ->
+            total + (numeric(payload_value(item, "price_subtotal")) || 0)
+          end)
+
+        amounts_equal?(line_subtotal, tax_totals_value(payload, "base_amount_currency"))
+    end
+  end
+
+  defp amounts_equal?(left, right) when is_number(left) and is_number(right) do
+    abs(left - right) < 0.01
+  end
+
+  defp amounts_equal?(_left, _right), do: false
 
   defp modified_ncf(payload) do
     [

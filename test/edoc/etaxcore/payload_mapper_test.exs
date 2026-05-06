@@ -990,8 +990,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
       "invoice_items" => [
         %{
           "name" => "LICENCIA WYI",
-          "price_subtotal" => 180_000.0,
-          "price_unit" => 180_000.0,
+          "price_subtotal" => 3000.0,
+          "price_unit" => 3000.0,
           "quantity" => 1.0
         }
       ]
@@ -1034,13 +1034,15 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              %{
                "indicadorFacturacion" => 4,
                "unidadMedida" => "43",
+               "precioUnitarioItem" => money(180_000.0),
+               "montoItem" => money(180_000.0),
                "retencion" => %{
                  "indicadorAgenteRetencionoPercepcion" => 1,
                  "montoISRRetenido" => money(48_600.0)
                },
                "otraMonedaDetalle" => %{
-                 "precioOtraMoneda" => money(180_000.0),
-                 "montoItemOtraMoneda" => money(180_000.0)
+                 "precioOtraMoneda" => money(3000.0),
+                 "montoItemOtraMoneda" => money(3000.0)
                }
              }
            ] = mapped["detallesItems"]
@@ -1052,6 +1054,77 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "orden" => 1,
                "subTotalExento" => money(180_000.0),
                "montoSubTotal" => money(180_000.0),
+               "lineas" => 1
+             }
+           ]
+  end
+
+  test "maps E47 foreign-currency line values into local detail amounts" do
+    payload = %{
+      "_id" => 47_133,
+      "invoice_date" => "2026-04-27",
+      "invoice_date_due" => "2026-04-27",
+      "invoice_partner_display_name" => "Carlos Felipe Castano Velez",
+      "identificador_extranjero" => "75082948",
+      "currency" => "USD",
+      "tipo_cambio" => 59.24,
+      "tax_totals" => %{
+        "base_amount" => 51_835.0,
+        "base_amount_currency" => 875.0,
+        "tax_amount" => -13_995.45,
+        "tax_amount_currency" => -236.25,
+        "total_amount" => 37_839.55,
+        "total_amount_currency" => 638.75
+      },
+      "invoice_items" => [
+        %{
+          "name" => "Servicio de Consultoria\nHCM (Macrotech)",
+          "price_subtotal" => 875.0,
+          "price_unit" => 25.0,
+          "quantity" => 35.0
+        }
+      ]
+    }
+
+    company = %Company{company_name: "FLOVELZ SRL", rnc: "132190068"}
+    mapped = PayloadMapper.map_e47(payload, company, e_doc: "E470000000133")
+
+    assert mapped["encabezado"]["totales"] == %{
+             "montoExento" => money(51_835.0),
+             "impuestosAdicionales" => [],
+             "montoTotal" => money(37_839.55),
+             "totalISRRetencion" => money(13_995.45)
+           }
+
+    assert mapped["encabezado"]["otraMoneda"] == %{
+             "tipoMoneda" => "USD",
+             "tipoCambio" => money(59.24),
+             "montoExentoOtraMoneda" => money(875.0),
+             "impuestosAdicionalesOtraMoneda" => [],
+             "montoTotalOtraMoneda" => money(638.75)
+           }
+
+    assert [
+             %{
+               "precioUnitarioItem" => money(1481.0),
+               "montoItem" => money(51_835.0),
+               "retencion" => %{
+                 "montoISRRetenido" => money(13_995.45)
+               },
+               "otraMonedaDetalle" => %{
+                 "precioOtraMoneda" => money(25.0),
+                 "montoItemOtraMoneda" => money(875.0)
+               }
+             }
+           ] = mapped["detallesItems"]
+
+    assert mapped["subtotales"] == [
+             %{
+               "numeroSubTotal" => 1,
+               "descripcionSubtotal" => "N/A",
+               "orden" => 1,
+               "subTotalExento" => money(51_835.0),
+               "montoSubTotal" => money(37_839.55),
                "lineas" => 1
              }
            ]
