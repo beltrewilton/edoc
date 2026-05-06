@@ -674,57 +674,66 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert mapped["encabezado"]["idDoc"] == %{
              "tipoeCF" => 41,
              "encf" => "E410000000001",
-             "fechaVencimientoSecuencia" => "10-03-2026",
-             "indicadorMontoGravado" => 0,
-             "tipoPago" => 2,
-             "tablaFormasPago" => [%{"formaPago" => 1, "montoPago" => money(11800.0)}]
+             "fechaVencimientoSecuencia" => "31-12-2028",
+             "tablaFormasPago" => [],
+             "FechaLimitePago" => "17-03-2026",
+             "numeroCuentaPago" => "",
+             "bancoPago" => ""
            }
 
     assert mapped["encabezado"]["totales"] == %{
-             "montoGravadoTotal" => money(10000.0),
-             "montoGravadoI1" => money(10000.0),
-             "itbis1" => 18,
-             "totalITBIS" => money(1800.0),
-             "totalITBIS1" => money(1800.0),
+             "montoExento" => money(11800.0),
              "impuestosAdicionales" => [],
              "montoTotal" => money(11800.0),
-             "valorPagar" => money(11800.0),
-             "totalITBISRetenido" => money(1800.0),
              "totalISRRetencion" => money(1800.0)
            }
 
     assert mapped["encabezado"]["otraMoneda"] == %{
              "tipoMoneda" => "USD",
              "tipoCambio" => money(60.0),
-             "montoGravadoTotalOtraMoneda" => money(166.66),
-             "montoGravado1OtraMoneda" => money(166.66),
-             "totalITBISOtraMoneda" => money(30.0),
-             "totalITBIS1OtraMoneda" => money(30.0),
+             "montoExentoOtraMoneda" => money(196.66),
              "impuestosAdicionalesOtraMoneda" => [],
              "montoTotalOtraMoneda" => money(196.66)
            }
 
-    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
-    assert mapped["encabezado"]["emisor"]["rncEmisor"] == 131_313_131
-    assert mapped["encabezado"]["comprador"]["razonSocialComprador"] == "EDOC SRL"
-    assert mapped["encabezado"]["comprador"]["rncComprador"] == 123_456_789
+    assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "EDOC SRL"
+    assert mapped["encabezado"]["emisor"]["rncEmisor"] == "123456789"
+
+    assert mapped["encabezado"]["comprador"] == %{
+             "identificadorExtranjero" => "131313131",
+             "razonSocialComprador" => "Proveedor Local"
+           }
 
     assert [
              %{
-               "indicadorFacturacion" => 1,
+               "indicadorFacturacion" => 4,
                "indicadorBienoServicio" => 2,
                "unidadMedida" => "43",
                "montoItem" => money(10000.0),
                "retencion" => %{
                  "indicadorAgenteRetencionoPercepcion" => 1,
-                 "montoITBISRetenido" => money(1800.0),
                  "montoISRRetenido" => money(1800.0)
+               },
+               "otraMonedaDetalle" => %{
+                 "precioOtraMoneda" => money(10000.0),
+                 "montoItemOtraMoneda" => money(10000.0)
                }
              }
            ] = mapped["detallesItems"]
+
+    assert mapped["subtotales"] == [
+             %{
+               "numeroSubTotal" => 1,
+               "descripcionSubtotal" => "N/A",
+               "orden" => 1,
+               "subTotalExento" => money(11800.0),
+               "montoSubTotal" => money(11800.0),
+               "lineas" => 1
+             }
+           ]
   end
 
-  test "computes E41 montoITBISRetenido per line from price_total minus price_subtotal" do
+  test "maps E41 item retention with the E47 detail structure" do
     payload = %{
       "_id" => 41_288,
       "amount_tax" => 540.0,
@@ -759,9 +768,25 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     mapped = PayloadMapper.map_e41(payload, company, e_doc: "E410000000002")
 
     assert [
-             %{"retencion" => %{"montoITBISRetenido" => money(180.0)}},
-             %{"retencion" => %{"montoITBISRetenido" => money(360.0)}}
+             %{
+               "indicadorFacturacion" => 4,
+               "retencion" => %{"montoISRRetenido" => money(540.0)} = retencion,
+               "otraMonedaDetalle" => %{
+                 "precioOtraMoneda" => money(1000.0),
+                 "montoItemOtraMoneda" => money(1000.0)
+               }
+             },
+             %{
+               "indicadorFacturacion" => 4,
+               "retencion" => %{"montoISRRetenido" => money(540.0)},
+               "otraMonedaDetalle" => %{
+                 "precioOtraMoneda" => money(2000.0),
+                 "montoItemOtraMoneda" => money(2000.0)
+               }
+             }
            ] = mapped["detallesItems"]
+
+    refute Map.has_key?(retencion, "montoITBISRetenido")
   end
 
   test "maps E43 odoo payload into the target etax shape" do

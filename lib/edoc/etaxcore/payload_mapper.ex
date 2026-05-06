@@ -152,7 +152,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "totales" => build_totales_e41(payload)
       },
       "detallesItems" => build_detalles_items_e41(payload),
-      "subtotales" => [],
+      "subtotales" => build_subtotales_e47(payload),
       "descuentosORecargos" => [],
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
@@ -338,15 +338,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "tipoeCF" => 41,
       "encf" => string_or_empty(Keyword.get(opts, :e_doc)),
       "fechaVencimientoSecuencia" => @fecha_vencimiento_secuencia,
-      "indicadorMontoGravado" => indicador_monto_gravado(payload),
+      "tablaFormasPago" => [],
       "FechaLimitePago" => fecha_limite_pago(payload, 41),
-      "tipoPago" => tipo_pago(payload),
-      "tablaFormasPago" => [
-        %{
-          "formaPago" => 2,
-          "montoPago" => amount_total(payload)
-        }
-      ]
+      "numeroCuentaPago" =>
+        value_as_string(payload, ["numeroCuentaPago", "numero_cuenta_pago"], ""),
+      "bancoPago" => value_as_string(payload, ["bancoPago", "banco_pago"], "")
     }
   end
 
@@ -542,13 +538,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_emisor_e41_from_company(payload, %Company{} = company) do
-    %{
-      "rncEmisor" => rnc_or_empty(company_field(company, :rnc)),
-      "razonSocialEmisor" => string_or_empty(company_field(company, :company_name)),
-      "direccionEmisor" => value_or_default(company_address(company), "N/A"),
-      "tablaTelefonoEmisor" => company_phone_list(company),
-      "fechaEmision" => format_date(payload_value(payload, "invoice_date"))
-    }
+    build_emisor_e47_from_company(payload, company)
   end
 
   defp build_emisor_e43_from_company(payload, %Company{} = company) do
@@ -589,40 +579,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_comprador_e41_from_supplier(payload) do
-    %{
-      "rncComprador" =>
-        rnc_or_empty(
-          value_from_keys(payload, ["rncComprador", "rnc_comprador", "rncEmisor", "rnc_emisor"]) ||
-            customer_tax_id(payload)
-        ),
-      "razonSocialComprador" =>
-        string_or_empty(
-          value_from_keys(payload, [
-            "razonSocialComprador",
-            "razon_social_comprador",
-            "razonSocialEmisor",
-            "razon_social_emisor"
-          ]) || customer_name(payload)
-        ),
-      "correoComprador" =>
-        string_or_empty(
-          value_from_keys(payload, ["correoComprador", "correo_comprador", "partner_email"])
-        ),
-      "direccionComprador" =>
-        direccion_comprador(
-          value_from_keys(payload, [
-            "direccionComprador",
-            "direccion_comprador",
-            "partner_address",
-            "direccionEmisor",
-            "direccion_emisor"
-          ])
-        ),
-      "municipioComprador" =>
-        value_or_default(payload_value(payload, "municipio_comprador"), "010101"),
-      "provinciaComprador" =>
-        value_or_default(payload_value(payload, "provincia_comprador"), "010000")
-    }
+    build_comprador_e47_from_supplier(payload)
   end
 
   defp build_comprador_e46(payload) do
@@ -668,28 +625,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_totales_e41(payload) do
-    total_itbis = e41_tax_amount(payload)
-    total_isr_retencion = e41_tax_amount(payload)
-
-    total_itbis_retenido =
-      numeric(value_from_keys(payload, ["totalITBISRetenido", "total_itbis_retenido"])) ||
-        total_itbis
-
-    monto_total = amount_total(payload)
-
-    %{
-      "montoGravadoTotal" => amount_untaxed(payload),
-      "montoGravadoI1" => amount_untaxed(payload),
-      "itbis1" => abs(itbis_rate(payload, amount_untaxed(payload), total_itbis)),
-      "totalITBIS" => total_itbis,
-      "totalITBIS1" => total_itbis,
-      "impuestosAdicionales" => [],
-      "montoTotal" => monto_total,
-      "valorPagar" =>
-        numeric(value_from_keys(payload, ["valorPagar", "valor_pagar"])) || monto_total,
-      "totalITBISRetenido" => total_itbis_retenido,
-      "totalISRRetencion" => total_isr_retencion
-    }
+    build_totales_isr_retencion(payload, e41_tax_amount(payload))
   end
 
   defp build_totales_e44(payload) do
@@ -735,13 +671,17 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_totales_e47(payload) do
+    build_totales_isr_retencion(payload, e47_tax_amount(payload))
+  end
+
+  defp build_totales_isr_retencion(payload, total_isr_retencion) do
     monto_total = amount_total(payload)
 
     %{
       "montoExento" => monto_total,
       "impuestosAdicionales" => [],
       "montoTotal" => monto_total,
-      "totalISRRetencion" => e47_tax_amount(payload)
+      "totalISRRetencion" => total_isr_retencion
     }
   end
 
@@ -946,44 +886,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e41(payload) do
-    indicador_facturacion = payload_facturation_indicator(payload)
-    isr_retenido = e41_tax_amount(payload)
-
-    payload
-    |> invoice_items()
-    |> Enum.with_index(1)
-    |> Enum.map(fn {item, index} ->
-      quantity = item_quantity(item)
-      unit_price = item_unit_price(item)
-      amount = item_amount(item, quantity, unit_price)
-
-      item_isr_retenido =
-        positive_number(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"]))
-
-      %{
-        "numeroLinea" => index,
-        "tablaCodigosItem" => [],
-        "indicadorFacturacion" => indicador_facturacion,
-        "retencion" => %{
-          "indicadorAgenteRetencionoPercepcion" => 1,
-          "montoITBISRetenido" =>
-            numeric(value_from_keys(item, ["montoITBISRetenido", "monto_itbis_retenido"])) ||
-              item_itbis_retenido(item, amount),
-          "montoISRRetenido" => item_isr_retenido || isr_retenido
-        },
-        "nombreItem" => item_name(item),
-        "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
-        "descripcionItem" => item_description(item),
-        "cantidadItem" => quantity,
-        "unidadMedida" => "43",
-        "tablaSubcantidad" => [],
-        "precioUnitarioItem" => unit_price,
-        "tablaSubDescuento" => [],
-        "tablaSubRecargo" => [],
-        "tablaImpuestoAdicional" => [],
-        "montoItem" => amount
-      }
-    end)
+    build_detalles_items_isr_retencion(payload, e41_tax_amount(payload))
   end
 
   defp build_detalles_items_e45(payload) do
@@ -1044,8 +947,10 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e47(payload) do
-    isr_retenido = e47_tax_amount(payload)
+    build_detalles_items_isr_retencion(payload, e47_tax_amount(payload))
+  end
 
+  defp build_detalles_items_isr_retencion(payload, isr_retenido) do
     payload
     |> invoice_items()
     |> Enum.with_index(1)
@@ -1338,20 +1243,6 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       numeric(payload_value(item, "debit")) ||
       numeric(payload_value(item, "credit")) ||
       quantity * item_unit_price_original(item)
-  end
-
-  defp item_total(item, amount) do
-    case numeric(payload_value(item, "price_total")) do
-      nil -> amount
-      total -> convert_item_amount(total, item)
-    end
-  end
-
-  defp item_itbis_retenido(item, amount) do
-    item
-    |> item_total(amount)
-    |> Kernel.-(amount)
-    |> max(0)
   end
 
   defp derived_unit_price(nil, _quantity), do: nil
