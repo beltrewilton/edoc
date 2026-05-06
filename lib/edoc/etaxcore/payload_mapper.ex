@@ -25,7 +25,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
                      "totalITBISRetenido",
                      "totalISRRetencion",
                      "tipoCambio",
+                     "montoGravadoTotalOtraMoneda",
+                     "montoGravado1OtraMoneda",
+                     "montoGravado2OtraMoneda",
+                     "montoGravado3OtraMoneda",
                      "montoExentoOtraMoneda",
+                     "totalITBISOtraMoneda",
+                     "totalITBIS1OtraMoneda",
+                     "totalITBIS2OtraMoneda",
+                     "totalITBIS3OtraMoneda",
+                     "montoImpuestoAdicionalOtraMoneda",
                      "montoTotalOtraMoneda",
                      "valorDescuentooRecargo",
                      "montoDescuentooRecargo",
@@ -58,6 +67,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -80,6 +90,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -104,6 +115,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "informacionReferencia" => build_informacion_referencia_e33(payload),
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -125,6 +137,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "informacionReferencia" => build_informacion_referencia_e34(payload),
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -144,6 +157,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -167,6 +181,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -190,6 +205,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -210,6 +226,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -231,6 +248,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -242,8 +260,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "idDoc" => build_id_doc_e47(payload, opts),
         "emisor" => build_emisor_e47_from_company(payload, company),
         "comprador" => build_comprador_e47_from_supplier(payload),
-        "totales" => build_totales_e47(payload),
-        "otraMoneda" => build_otra_moneda_e47(payload)
+        "totales" => build_totales_e47(payload)
       },
       "detallesItems" => build_detalles_items_e47(payload),
       "subtotales" => build_subtotales_e47(payload),
@@ -251,6 +268,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
+    |> maybe_put_otra_moneda(payload)
     |> normalize_currency_fields()
   end
 
@@ -650,10 +668,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_totales_e41(payload) do
-    total_itbis = amount_tax(payload)
-
-    total_isr_retencion =
-      numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
+    total_itbis = e41_tax_amount(payload)
+    total_isr_retencion = e41_tax_amount(payload)
 
     total_itbis_retenido =
       numeric(value_from_keys(payload, ["totalITBISRetenido", "total_itbis_retenido"])) ||
@@ -664,7 +680,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     %{
       "montoGravadoTotal" => amount_untaxed(payload),
       "montoGravadoI1" => amount_untaxed(payload),
-      "itbis1" => itbis_rate(payload, amount_untaxed(payload), total_itbis),
+      "itbis1" => abs(itbis_rate(payload, amount_untaxed(payload), total_itbis)),
       "totalITBIS" => total_itbis,
       "totalITBIS1" => total_itbis,
       "impuestosAdicionales" => [],
@@ -723,8 +739,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       "montoExento" => amount_exempt(payload),
       "impuestosAdicionales" => [],
       "montoTotal" => amount_total(payload),
-      "totalISRRetencion" =>
-        numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
+      "totalISRRetencion" => e47_tax_amount(payload)
     }
   end
 
@@ -754,43 +769,110 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     }
   end
 
-  defp build_otra_moneda_e47(payload) do
-    explicit_exchange_rate? = exchange_rate_provided?(payload)
-    exchange_rate = exchange_rate(payload, @default_e47_exchange_rate)
+  defp maybe_put_otra_moneda(%{"encabezado" => %{} = encabezado} = mapped_payload, payload) do
+    if foreign_currency_payload?(payload) do
+      Map.put(
+        mapped_payload,
+        "encabezado",
+        Map.put(
+          encabezado,
+          "otraMoneda",
+          build_otra_moneda(payload, encabezado["totales"] || %{})
+        )
+      )
+    else
+      mapped_payload
+    end
+  end
 
-    monto_exento_otra =
-      numeric(value_from_keys(payload, ["montoExentoOtraMoneda", "monto_exento_otra_moneda"]))
+  defp maybe_put_otra_moneda(mapped_payload, _payload), do: mapped_payload
 
-    monto_total_otra =
-      numeric(value_from_keys(payload, ["montoTotalOtraMoneda", "monto_total_otra_moneda"]))
+  defp build_otra_moneda(payload, totales) do
+    base_amount_currency = tax_totals_value(payload, "base_amount_currency")
+    tax_amount_currency = positive_number(tax_totals_value(payload, "tax_amount_currency"))
+    total_amount_currency = tax_totals_value(payload, "total_amount_currency")
 
     %{
       "tipoMoneda" =>
         value_as_string(payload, ["tipoMoneda", "tipo_moneda", "currency"], @default_e47_currency),
-      "tipoCambio" => exchange_rate,
-      "montoExentoOtraMoneda" =>
-        monto_exento_otra ||
-          e47_foreign_currency_amount(
-            amount_exempt(payload),
-            exchange_rate,
-            explicit_exchange_rate?
-          ),
+      "tipoCambio" => explicit_exchange_rate(payload) || 1,
       "impuestosAdicionalesOtraMoneda" =>
         list_or_empty(
           value_from_keys(payload, [
             "impuestosAdicionalesOtraMoneda",
             "impuestos_adicionales_otra_moneda"
           ])
-        ),
-      "montoTotalOtraMoneda" =>
-        monto_total_otra ||
-          e47_foreign_currency_amount(
-            amount_total(payload),
-            exchange_rate,
-            explicit_exchange_rate?
-          )
+        )
     }
+    |> maybe_put_otra_amount(
+      "montoGravadoTotalOtraMoneda",
+      Map.has_key?(totales, "montoGravadoTotal"),
+      explicit_otra_amount(payload, [
+        "montoGravadoTotalOtraMoneda",
+        "monto_gravado_total_otra_moneda"
+      ]) || base_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado1OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI1"),
+      explicit_otra_amount(payload, ["montoGravado1OtraMoneda", "monto_gravado_1_otra_moneda"]) ||
+        base_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado2OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI2"),
+      explicit_otra_amount(payload, ["montoGravado2OtraMoneda", "monto_gravado_2_otra_moneda"]) ||
+        base_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado3OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI3"),
+      explicit_otra_amount(payload, ["montoGravado3OtraMoneda", "monto_gravado_3_otra_moneda"]) ||
+        base_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "montoExentoOtraMoneda",
+      Map.has_key?(totales, "montoExento"),
+      explicit_otra_amount(payload, ["montoExentoOtraMoneda", "monto_exento_otra_moneda"]) ||
+        base_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "totalITBISOtraMoneda",
+      Map.has_key?(totales, "totalITBIS"),
+      explicit_otra_amount(payload, ["totalITBISOtraMoneda", "total_itbis_otra_moneda"]) ||
+        tax_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS1OtraMoneda",
+      Map.has_key?(totales, "totalITBIS1"),
+      explicit_otra_amount(payload, ["totalITBIS1OtraMoneda", "total_itbis_1_otra_moneda"]) ||
+        tax_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS2OtraMoneda",
+      Map.has_key?(totales, "totalITBIS2"),
+      explicit_otra_amount(payload, ["totalITBIS2OtraMoneda", "total_itbis_2_otra_moneda"]) ||
+        tax_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS3OtraMoneda",
+      Map.has_key?(totales, "totalITBIS3"),
+      explicit_otra_amount(payload, ["totalITBIS3OtraMoneda", "total_itbis_3_otra_moneda"]) ||
+        tax_amount_currency
+    )
+    |> maybe_put_otra_amount(
+      "montoTotalOtraMoneda",
+      Map.has_key?(totales, "montoTotal"),
+      explicit_otra_amount(payload, ["montoTotalOtraMoneda", "monto_total_otra_moneda"]) ||
+        total_amount_currency
+    )
   end
+
+  defp maybe_put_otra_amount(map, _key, false, _value), do: map
+  defp maybe_put_otra_amount(map, key, true, nil), do: map
+  defp maybe_put_otra_amount(map, key, true, value), do: Map.put(map, key, value)
+
+  defp explicit_otra_amount(payload, keys), do: numeric(value_from_keys(payload, keys))
 
   defp build_descuentos_o_recargos(payload) do
     payload
@@ -863,9 +945,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   defp build_detalles_items_e41(payload) do
     indicador_facturacion = payload_facturation_indicator(payload)
-
-    isr_retenido =
-      numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
+    isr_retenido = e41_tax_amount(payload)
 
     payload
     |> invoice_items()
@@ -875,7 +955,8 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       unit_price = item_unit_price(item)
       amount = item_amount(item, quantity, unit_price)
 
-      IO.inspect(item, label: "items")
+      item_isr_retenido =
+        positive_number(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"]))
 
       %{
         "numeroLinea" => index,
@@ -886,9 +967,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
           "montoITBISRetenido" =>
             numeric(value_from_keys(item, ["montoITBISRetenido", "monto_itbis_retenido"])) ||
               item_itbis_retenido(item, amount),
-          "montoISRRetenido" =>
-            numeric(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"])) ||
-              isr_retenido
+          "montoISRRetenido" => item_isr_retenido || isr_retenido
         },
         "nombreItem" => item_name(item),
         "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
@@ -963,11 +1042,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp build_detalles_items_e47(payload) do
-    explicit_exchange_rate? = exchange_rate_provided?(payload)
-    exchange_rate = exchange_rate(payload, @default_e47_exchange_rate)
-
-    isr_retenido =
-      numeric(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) || 0
+    isr_retenido = e47_tax_amount(payload)
 
     payload
     |> invoice_items()
@@ -977,15 +1052,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
       unit_price = item_unit_price(item)
       amount = item_amount(item, quantity, unit_price)
 
+      item_isr_retenido =
+        positive_number(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"]))
+
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
         "indicadorFacturacion" => 4,
         "retencion" => %{
           "indicadorAgenteRetencionoPercepcion" => 1,
-          "montoISRRetenido" =>
-            numeric(value_from_keys(item, ["montoISRRetenido", "monto_isr_retenido"])) ||
-              isr_retenido
+          "montoISRRetenido" => item_isr_retenido || isr_retenido
         },
         "nombreItem" => item_name(item),
         "indicadorBienoServicio" => 2,
@@ -999,14 +1075,10 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         "otraMonedaDetalle" => %{
           "precioOtraMoneda" =>
             numeric(value_from_keys(item, ["precioOtraMoneda", "precio_otra_moneda"])) ||
-              e47_detail_foreign_currency_amount(
-                unit_price,
-                exchange_rate,
-                explicit_exchange_rate?
-              ),
+              unit_price,
           "montoItemOtraMoneda" =>
             numeric(value_from_keys(item, ["montoItemOtraMoneda", "monto_item_otra_moneda"])) ||
-              e47_detail_foreign_currency_amount(amount, exchange_rate, explicit_exchange_rate?)
+              amount
         },
         "montoItem" => amount
       }
@@ -1396,34 +1468,46 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   defp list_or_empty(value) when is_list(value), do: value
   defp list_or_empty(_), do: []
 
+  defp foreign_currency_payload?(payload) do
+    case explicit_exchange_rate(payload) do
+      nil -> false
+      1 -> false
+      1.0 -> false
+      _rate -> true
+    end
+  end
+
+  defp explicit_exchange_rate(payload) do
+    numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"]))
+  end
+
   defp exchange_rate(payload, default) do
-    case numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])) do
+    case explicit_exchange_rate(payload) do
       nil -> default
       value -> value
     end
   end
 
-  defp exchange_rate_provided?(payload) do
-    not is_nil(numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])))
+  defp e41_tax_amount(payload) do
+    positive_number(tax_totals_value(payload, "tax_amount")) ||
+      positive_number(value_from_keys(payload, ["tax_amount", "amount_tax"])) ||
+      positive_number(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) ||
+      0
   end
 
-  defp e47_foreign_currency_amount(amount, rate, true), do: safe_div(amount, rate)
-
-  defp e47_foreign_currency_amount(amount, rate, false) do
-    amount
-    |> safe_div(rate)
-    |> trunc_to_tenths()
+  defp e47_tax_amount(payload) do
+    positive_number(tax_totals_value(payload, "tax_amount")) ||
+      positive_number(value_from_keys(payload, ["tax_amount", "amount_tax"])) ||
+      positive_number(value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])) ||
+      0
   end
 
-  defp e47_detail_foreign_currency_amount(amount, rate, true), do: safe_div(amount, rate)
-  defp e47_detail_foreign_currency_amount(_amount, _rate, false), do: 0
-
-  defp trunc_to_tenths(value) when is_number(value), do: trunc(value * 10) / 10
-  defp trunc_to_tenths(_value), do: 0
-
-  defp safe_div(_amount, rate) when rate in [0, 0.0], do: 0
-  defp safe_div(nil, _rate), do: 0
-  defp safe_div(amount, rate), do: amount / rate
+  defp positive_number(value) do
+    case numeric(value) do
+      nil -> nil
+      number -> abs(number)
+    end
+  end
 
   defp invoice_items(payload) do
     payload

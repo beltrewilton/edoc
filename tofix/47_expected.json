@@ -9,8 +9,8 @@
       "nombreItem": "Consultoria Extractor para SAP S/4HANA",
       "numeroLinea": 1,
       "otraMonedaDetalle": {
-        "montoItemOtraMoneda": "0.00",
-        "precioOtraMoneda": "0.00"
+        "montoItemOtraMoneda": "10000.00",
+        "precioOtraMoneda": "5000.00"
       },
       "precioUnitarioItem": "5000.00",
       "retencion": {
@@ -52,13 +52,6 @@
       "numeroCuentaPago": "",
       "tablaFormasPago": [],
       "tipoeCF": 47
-    },
-    "otraMoneda": {
-      "impuestosAdicionalesOtraMoneda": [],
-      "montoExentoOtraMoneda": "166.60",
-      "montoTotalOtraMoneda": "166.60",
-      "tipoCambio": "60.00",
-      "tipoMoneda": "USD"
     },
     "totales": {
       "impuestosAdicionales": [],

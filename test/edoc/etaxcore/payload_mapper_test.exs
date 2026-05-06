@@ -129,6 +129,64 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
     assert item["tablaImpuestoAdicional"] == []
   end
 
+  test "adds otraMoneda from currency totals when tipo_cambio is not one" do
+    payload = %{
+      "_id" => 31_888,
+      "invoice_date" => "2026-02-24",
+      "invoice_date_due" => "2026-02-24",
+      "invoice_partner_display_name" => "Cliente USD",
+      "rnc_comprador" => "131-31313-1",
+      "payment_reference" => "INV/2026/0888",
+      "currency" => "USD",
+      "tipo_cambio" => 60.0,
+      "tax_totals" => %{
+        "base_amount" => 60_000.0,
+        "base_amount_currency" => 1000.0,
+        "tax_amount" => 10_800.0,
+        "tax_amount_currency" => 180.0,
+        "total_amount" => 70_800.0,
+        "total_amount_currency" => 1180.0,
+        "subtotals" => [
+          %{
+            "tax_groups" => [
+              %{
+                "base_amount" => 60_000.0,
+                "tax_amount" => 10_800.0
+              }
+            ]
+          }
+        ]
+      },
+      "invoice_items" => [
+        %{
+          "name" => "Servicio USD",
+          "price_subtotal" => 60_000.0,
+          "price_unit" => 60_000.0,
+          "quantity" => 1.0,
+          "tax_ids" => [3]
+        }
+      ]
+    }
+
+    company = %Company{company_name: "EDOC SRL", rnc: "123456789"}
+    mapped = PayloadMapper.map_e31(payload, company, e_doc: "E310000000888")
+
+    assert mapped["encabezado"]["totales"]["montoGravadoTotal"] == money(60_000.0)
+    assert mapped["encabezado"]["totales"]["totalITBIS"] == money(10_800.0)
+    assert mapped["encabezado"]["totales"]["montoTotal"] == money(70_800.0)
+
+    assert mapped["encabezado"]["otraMoneda"] == %{
+             "tipoMoneda" => "USD",
+             "tipoCambio" => money(60.0),
+             "montoGravadoTotalOtraMoneda" => money(1000.0),
+             "montoGravado1OtraMoneda" => money(1000.0),
+             "totalITBISOtraMoneda" => money(180.0),
+             "totalITBIS1OtraMoneda" => money(180.0),
+             "impuestosAdicionalesOtraMoneda" => [],
+             "montoTotalOtraMoneda" => money(1180.0)
+           }
+  end
+
   test "maps E32 odoo payload into the target etax shape" do
     payload = %{
       "_id" => 22_287,
@@ -516,16 +574,34 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
   test "maps E41 odoo payload into the target etax shape" do
     payload = %{
       "_id" => 41_287,
-      "amount_tax" => 1800.0,
-      "amount_total" => 11800.0,
-      "amount_untaxed" => 10000.0,
       "invoice_date" => "2026-02-24",
       "invoice_date_due" => "2026-03-10",
       "invoice_partner_display_name" => "Proveedor Local",
       "rnc_comprador" => "131-31313-1",
       "partner_id" => 999,
       "payment_reference" => "BILL/2026/0001",
-      "total_isr_retencion" => 1000.0,
+      "currency" => "USD",
+      "tipo_cambio" => 60.0,
+      "tax_totals" => %{
+        "base_amount" => 10_000.0,
+        "base_amount_currency" => 166.66,
+        "tax_amount" => -1800.0,
+        "tax_amount_currency" => -30.0,
+        "total_amount" => 11_800.0,
+        "total_amount_currency" => 196.66,
+        "subtotals" => [
+          %{
+            "tax_groups" => [
+              %{
+                "base_amount" => 10_000.0,
+                "base_amount_currency" => 166.66,
+                "tax_amount" => -1800.0,
+                "tax_amount_currency" => -30.0
+              }
+            ]
+          }
+        ]
+      },
       "invoice_items" => [
         %{
           "name" => "[SERV001] Servicio de publicidad",
@@ -561,7 +637,18 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
              "montoTotal" => money(11800.0),
              "valorPagar" => money(11800.0),
              "totalITBISRetenido" => money(1800.0),
-             "totalISRRetencion" => money(1000.0)
+             "totalISRRetencion" => money(1800.0)
+           }
+
+    assert mapped["encabezado"]["otraMoneda"] == %{
+             "tipoMoneda" => "USD",
+             "tipoCambio" => money(60.0),
+             "montoGravadoTotalOtraMoneda" => money(166.66),
+             "montoGravado1OtraMoneda" => money(166.66),
+             "totalITBISOtraMoneda" => money(30.0),
+             "totalITBIS1OtraMoneda" => money(30.0),
+             "impuestosAdicionalesOtraMoneda" => [],
+             "montoTotalOtraMoneda" => money(196.66)
            }
 
     assert mapped["encabezado"]["emisor"]["razonSocialEmisor"] == "Proveedor Local"
@@ -578,7 +665,7 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                "retencion" => %{
                  "indicadorAgenteRetencionoPercepcion" => 1,
                  "montoITBISRetenido" => money(1800.0),
-                 "montoISRRetenido" => money(1000.0)
+                 "montoISRRetenido" => money(1800.0)
                }
              }
            ] = mapped["detallesItems"]
@@ -881,9 +968,6 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
   test "maps E47 odoo payload into the target etax shape" do
     payload = %{
       "_id" => 47_287,
-      "amount_tax" => 0.0,
-      "amount_total" => 180_000.0,
-      "amount_untaxed" => 180_000.0,
       "invoice_date" => "2026-02-24",
       "invoice_date_due" => "2026-03-10",
       "payment_reference" => "INV/2026/0047",
@@ -895,7 +979,14 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
         "BB0111111111111111111111111111111111111111111111111111111111111111111111111",
       "currency" => "USD",
       "tipo_cambio" => 60.0,
-      "total_isr_retencion" => 48_600.0,
+      "tax_totals" => %{
+        "base_amount" => 180_000.0,
+        "base_amount_currency" => 3000.0,
+        "tax_amount" => -48_600.0,
+        "tax_amount_currency" => -810.0,
+        "total_amount" => 180_000.0,
+        "total_amount_currency" => 3000.0
+      },
       "invoice_items" => [
         %{
           "name" => "LICENCIA WYI",
@@ -948,8 +1039,8 @@ defmodule Edoc.Etaxcore.PayloadMapperTest do
                  "montoISRRetenido" => money(48_600.0)
                },
                "otraMonedaDetalle" => %{
-                 "precioOtraMoneda" => money(3000.0),
-                 "montoItemOtraMoneda" => money(3000.0)
+                 "precioOtraMoneda" => money(180_000.0),
+                 "montoItemOtraMoneda" => money(180_000.0)
                }
              }
            ] = mapped["detallesItems"]

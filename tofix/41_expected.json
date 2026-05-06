@@ -12,7 +12,7 @@
       "precioUnitarioItem": "2500.00",
       "retencion": {
         "indicadorAgenteRetencionoPercepcion": 1,
-        "montoISRRetenido": "0.00",
+        "montoISRRetenido": "450.00",
         "montoITBISRetenido": "450.00"
       },
       "tablaCodigosItem": [],
@@ -59,7 +59,7 @@
       "montoGravadoI1": "2500.00",
       "montoGravadoTotal": "2500.00",
       "montoTotal": "2950.00",
-      "totalISRRetencion": "0.00",
+      "totalISRRetencion": "450.00",
       "totalITBIS": "450.00",
       "totalITBIS1": "450.00",
       "totalITBISRetenido": "450.00",
