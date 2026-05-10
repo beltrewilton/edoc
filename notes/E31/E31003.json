@@ -1,0 +1,99 @@
+// E31 consumer tax credit invoice with two taxable product lines grouped under 18% ITBIS
+
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 31,
+      "encf": "E310000000152",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "44800.07"
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "codigoVendedor": "",
+      "numeroFacturaInterna": "INV/2025/11/0009",
+      "zonaVenta": "",
+      "fechaEmision": "26-11-2025"
+    },
+    "comprador": {
+      "rncComprador": "112106081",
+      "razonSocialComprador": "Huntours SRL",
+      "contactoComprador": "Huntours SRL",
+      "tablaTelefonoComprador": [],
+      "correoComprador": "",
+      "direccionComprador": "",
+      "municipioComprador": "",
+      "provinciaComprador": "",
+      "fechaEntrega": "26-11-2025",
+      "fechaOrdenCompra": "26-11-2025",
+      "numeroOrdenCompra": "S00623",
+      "codigoInternoComprador": "146"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "",
+      "numeroReferencia": 6222
+    },
+    "totales": {
+      "montoGravadoI1": "37966.16",  //TODO: tax_totals.subtotals.tax_groups[INDEX].base_amount
+      "itbis1": 18,                  //TODO: `"itbis1": 18` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "totalITBIS1": "6833.91",     //TODO: tax_totals.subtotals.tax_groups[INDEX].tax_amount  
+
+      "impuestosAdicionales": [],
+
+      "montoGravadoTotal": "37966.16",   //TODO: tax_totals.base_amount
+      "totalITBIS": "6833.91",           //TODO: tax_totals.tax_amount
+      "montoTotal": "44800.07"           //TODO: tax_totals.total_amount
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,
+      "nombreItem": "STP Matte Blanco 00",
+      "indicadorBienoServicio": 1,   //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "cantidadItem": 7,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "4745.77",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "33220.39"
+    },
+    {
+      "numeroLinea": 2,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,     //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "nombreItem": "STP Matte Crema\nAccesible Beige SW7036",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "4745.77",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "4745.77"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "07-05-2026 02:30:17"
+}

@@ -9,7 +9,8 @@ defmodule Edoc.TestSupport.CompanyOnboardingStub do
            tax_id: rnc,
            legal_name: "Stubbed Company SRL",
            economic_activity: "SOFTWARE SERVICES",
-           local_administration: "ADM LOCAL CENTRAL"
+           local_administration: "ADM LOCAL CENTRAL",
+           electronic_invoicer: "No"
          }}
 
       result ->

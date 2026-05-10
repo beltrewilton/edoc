@@ -1,0 +1,81 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 47,
+      "encf": "E470000000139",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "FechaLimitePago": "05-05-2026",
+      "tablaFormasPago": [],
+      "numeroCuentaPago": "",
+      "bancoPago": ""
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026040003",
+      "fechaEmision": "27-04-2026"
+    },
+    "comprador": {
+      "identificadorExtranjero": "75082948",
+      "razonSocialComprador": "Carlos Felipe Castaño Velez"
+    },
+    "totales": {
+      "montoExento": "37839.55",
+      "impuestosAdicionales": [],
+      "montoTotal": "37839.55",
+      "totalISRRetencion": "13995.45"
+    },
+    "otraMoneda": {
+      "tipoMoneda": "USD",
+      "tipoCambio": "59.24",
+      "montoExentoOtraMoneda": "638.75",
+      "impuestosAdicionalesOtraMoneda": [],
+      "montoTotalOtraMoneda": "638.75"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": "13995.45"
+      },
+      "nombreItem": "Servicio de Consultoria\nHCM (Macrotech)",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 35,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "1081.13",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "otraMonedaDetalle": {
+        "precioOtraMoneda": "18.25",
+        "montoItemOtraMoneda": "638.75"
+      },
+      "montoItem": "37839.55"
+    }
+  ],
+  "subtotales": [
+    {
+      "numeroSubTotal": 1,
+      "descripcionSubtotal": "N/A",
+      "orden": 1,
+      "subTotalExento": "37839.55",
+      "montoSubTotal": "37839.55",
+      "lineas": 1
+    }
+  ],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "06-05-2026 00:47:37"
+}

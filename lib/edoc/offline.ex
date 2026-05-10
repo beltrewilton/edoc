@@ -10,15 +10,9 @@ defmodule OfflinePayload do
   }
 
   @cases %{
-    "41" =>
-      {&PayloadMapper.map_e41/3,
-       [e_doc: "E410000000101", fecha_hora_firma: "14-04-2026 00:33:31"]},
-    "43" =>
-      {&PayloadMapper.map_e43/3,
-       [e_doc: "E430000000102", fecha_hora_firma: "16-04-2026 02:21:50"]},
-    "47" =>
-      {&PayloadMapper.map_e47/3,
-       [e_doc: "E470000000101", fecha_hora_firma: "14-04-2026 00:44:41"]}
+    "31" =>
+      {&PayloadMapper.map_e31/3,
+       [e_doc: "E310000000101", fecha_hora_firma: "14-04-2026 00:33:31"]}
   }
 
   def generate(case_id) do

@@ -1,0 +1,104 @@
+// E31 consumer tax credit invoice with one 18% ITBIS line and one zero-tax line
+
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 31,
+      "encf": "E310000000140",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "9759.33"      //TODO: tax_totals.total_amount
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "codigoVendedor": "",
+      "numeroFacturaInterna": "INV/2025/11/0007",
+      "zonaVenta": "",
+      "fechaEmision": "19-11-2025"
+    },
+    "comprador": {
+      "rncComprador": "131362702",
+      "razonSocialComprador": "Yocasta Santana",
+      "contactoComprador": "Yocasta Santana",
+      "tablaTelefonoComprador": [],
+      "correoComprador": "",
+      "direccionComprador": "",
+      "municipioComprador": "",
+      "provinciaComprador": "",
+      "fechaEntrega": "19-11-2025",
+      "fechaOrdenCompra": "19-11-2025",
+      "numeroOrdenCompra": "S00620",
+      "codigoInternoComprador": "356"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "",
+      "numeroReferencia": 5612
+    },
+    "totales": {
+      "montoGravadoI1": "7796.62",    //TODO: tax_totals.subtotals.tax_groups[INDEX].base_amount
+      "itbis1": 18,                   //TODO: `"itbis1": 18` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "totalITBIS1": "1403.39",      //TODO: tax_totals.subtotals.tax_groups[INDEX].tax_amount
+      
+      //TODO: invoice_items.tax_ids IF tax_ids is len = 0, then the following 3 vars (montoGravadoI3, itbis3, totalITBIS3) should be generate exactly:
+      //TODO: IF tax_ids is len != 0 do NOT generate those 3 vars.
+      "montoGravadoI3": "559.32",   //TODO: invoice_items[INDEX].price_subtotal GET the INDEX of the corresponding item (item with tax_ids is len = 0), for this case is "Brocha #3" with price 559.32 
+      "itbis3": 0,                  //TODO: 0
+      "totalITBIS3": "0.00",        //TODO: "0.00"
+
+      "montoGravadoTotal": "8355.94", //TODO: tax_totals.base_amount
+      "totalITBIS": "1403.39",       //TODO: tax_totals.tax_amount
+      "impuestosAdicionales": [],
+      "montoTotal": "9759.33"        //TODO: tax_totals.total_amount
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,   //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "nombreItem": "STB Matte Crema\nVainilla 86",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 2,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "3898.31",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "7796.62"
+    },
+    {
+      "numeroLinea": 2,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 3,  //TODO: invoice_items.tax_ids IF tax_ids[] is len = 0, for "indicadorFacturacion" use integer 3, otherwise integer 1
+      "nombreItem": "Brocha #3",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 4,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "139.83",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "559.32"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "07-05-2026 00:45:47"
+}

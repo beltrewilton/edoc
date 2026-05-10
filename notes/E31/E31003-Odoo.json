@@ -1,0 +1,132 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 6222,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 44800.07,
+  "amount_tax": 6833.91,
+  "amount_total": 44800.07,
+  "amount_untaxed": 37966.16,
+  "commercial_partner_id": 146,
+  "company_id": 1,
+  "currency": "DOP",
+  "display_name": "INV/2025/11/0009",
+  "id": 6222,
+  "invoice_date": "2025-11-26",
+  "invoice_date_due": "2025-11-26",
+  "invoice_items": [
+    {
+      "account_id": [
+        159,
+        "41010100 Ventas de Bienes"
+      ],
+      "credit": 33220.39,
+      "debit": 0,
+      "discount": 0,
+      "id": 16065,
+      "name": "[STPMB00] STP Matte Blanco 00",
+      "price_subtotal": 33220.39,
+      "price_total": 39200.06,
+      "price_unit": 4745.77,
+      "product_id": [
+        66,
+        "[STPMB00] STP Matte Blanco 00"
+      ],
+      "quantity": 7,
+      "tax_ids": [
+        3
+      ],
+      "type": "consu"
+    },
+    {
+      "account_id": [
+        159,
+        "41010100 Ventas de Bienes"
+      ],
+      "credit": 4745.77,
+      "debit": 0,
+      "discount": 0,
+      "id": 16066,
+      "name": "[STPMATCREM] STP Matte Crema\nAccesible Beige SW7036",
+      "price_subtotal": 4745.77,
+      "price_total": 5600.01,
+      "price_unit": 4745.77,
+      "product_id": [
+        248,
+        "[STPMATCREM] STP Matte Crema"
+      ],
+      "quantity": 1,
+      "tax_ids": [
+        3
+      ],
+      "type": "consu"
+    }
+  ],
+  "invoice_line_ids": [
+    16065,
+    16066
+  ],
+  "invoice_origin": "S00623",
+  "invoice_partner_display_name": "Huntours SRL",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    16065,
+    16066,
+    16067,
+    16068
+  ],
+  "name": "INV/2025/11/0009",
+  "partner_id": 146,
+  "partner_vat": "112-10608-1",
+  "payment_reference": "INV/2025/11/0009",
+  "payment_state": "not_paid",
+  "razonSocialComprador": "Huntours SRL",
+  "ref": false,
+  "reversed_entry_id": false,
+  "rncComprador": "112-10608-1",
+  "status_in_payment": "not_paid",
+  "tax_totals": {
+    "base_amount": 37966.16,
+    "base_amount_currency": 37966.16,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 37966.16,
+        "base_amount_currency": 37966.16,
+        "name": "Subtotal",
+        "tax_amount": 6833.91,
+        "tax_amount_currency": 6833.91,
+        "tax_groups": [
+          {
+            "base_amount": 37966.16,
+            "base_amount_currency": 37966.16,
+            "display_base_amount": 37966.16,
+            "display_base_amount_currency": 37966.16,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              3
+            ],
+            "tax_amount": 6833.91,
+            "tax_amount_currency": 6833.91
+          }
+        ]
+      }
+    ],
+    "tax_amount": 6833.91,
+    "tax_amount_currency": 6833.91,
+    "total_amount": 44800.07000000001,
+    "total_amount_currency": 44800.07000000001
+  },
+  "tipo_cambio": 1,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": false,
+  "x_studio_e_doc_inv": "E31"
+}

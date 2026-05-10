@@ -1,0 +1,107 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 12966,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 2000,
+  "amount_tax": 0,
+  "amount_total": 2000,
+  "amount_untaxed": 2000,
+  "commercial_partner_id": 390,
+  "company_id": 1,
+  "currency": "USD",
+  "direccionComprador": "EIN:30-1422215, 34711 Florida, Estados Unidos",
+  "direccion_comprador": "EIN:30-1422215, 34711 Florida, Estados Unidos",
+  "display_name": "INV/2026/04/0008",
+  "id": 12966,
+  "invoice_date": "2026-04-27",
+  "invoice_date_due": "2026-04-27",
+  "invoice_items": [
+    {
+      "account_id": [
+        161,
+        "41020100 Ventas de Servicios"
+      ],
+      "credit": 118480,
+      "debit": 0,
+      "discount": 0,
+      "id": 37348,
+      "name": "Consultoria de gerencia de Proyectos",
+      "price_subtotal": 2000,
+      "price_total": 2000,
+      "price_unit": 2000,
+      "product_id": [
+        213,
+        "Consultoria de gerencia de Proyectos"
+      ],
+      "quantity": 1,
+      "tax_ids": [
+        1
+      ],
+      "type": "service"
+    }
+  ],
+  "invoice_line_ids": [
+    37348
+  ],
+  "invoice_origin": "S00660",
+  "invoice_partner_display_name": "Logisticai LLC",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    37348,
+    37349
+  ],
+  "name": "INV/2026/04/0008",
+  "partner_address": "EIN:30-1422215, 34711 Florida, Estados Unidos",
+  "partner_id": 390,
+  "payment_reference": "INV/2026/04/0008",
+  "payment_state": "not_paid",
+  "razonSocialComprador": "Logisticai LLC",
+  "ref": "",
+  "reversed_entry_id": false,
+  "status_in_payment": "not_paid",
+  "tax_totals": {
+    "base_amount": 118480,
+    "base_amount_currency": 2000,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 2,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 118480,
+        "base_amount_currency": 2000,
+        "name": "Subtotal",
+        "tax_amount": 0,
+        "tax_amount_currency": 0,
+        "tax_groups": [
+          {
+            "base_amount": 118480,
+            "base_amount_currency": 2000,
+            "display_base_amount": 118480,
+            "display_base_amount_currency": 2000,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              1
+            ],
+            "tax_amount": 0,
+            "tax_amount_currency": 0
+          }
+        ]
+      }
+    ],
+    "tax_amount": 0,
+    "tax_amount_currency": 0,
+    "total_amount": 118480,
+    "total_amount_currency": 2000
+  },
+  "tipo_cambio": 59.24000000000001,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": false,
+  "x_studio_e_doc_inv": "E32"
+}

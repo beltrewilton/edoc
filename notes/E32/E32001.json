@@ -1,0 +1,80 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 32,
+      "encf": "E320000000132",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "2000.00"
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "codigoVendedor": "",
+      "numeroFacturaInterna": "INV/2026/04/0008",
+      "zonaVenta": "",
+      "fechaEmision": "27-04-2026"
+    },
+    "comprador": {
+      "rncComprador": "",
+      "razonSocialComprador": "Logisticai LLC",
+      "contactoComprador": "Logisticai LLC",
+      "tablaTelefonoComprador": [],
+      "correoComprador": "",
+      "direccionComprador": "EIN:30-1422215, 34711 Florida, Estados Unidos",
+      "municipioComprador": "",
+      "provinciaComprador": "",
+      "fechaEntrega": "27-04-2026",
+      "fechaOrdenCompra": "27-04-2026",
+      "numeroOrdenCompra": "S00660",
+      "codigoInternoComprador": "390"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "",
+      "numeroReferencia": 12966
+    },
+    "totales": {
+      "montoGravadoTotal": "2000.00",
+      "montoGravadoI1": "2000.00",
+      "itbis1": 0,
+      "totalITBIS": "0.00",
+      "totalITBIS1": "0.00",
+      "impuestosAdicionales": [],
+      "montoTotal": "2000.00"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "Consultoria de gerencia de Proyectos",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "2000.00",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "2000.00"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "27-04-2026 20:45:56"
+}

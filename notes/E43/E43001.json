@@ -1,0 +1,49 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 43,
+      "encf": "E430000000134",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "tablaFormasPago": []
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026040006",
+      "fechaEmision": "27-04-2026"
+    },
+    "totales": {
+      "montoExento": "3160.84",
+      "impuestosAdicionales": [],
+      "montoTotal": "3160.84"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "nombreItem": "Membresía",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "3160.84",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "3160.84"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "27-04-2026 21:05:08"
+}

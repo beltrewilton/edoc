@@ -1,0 +1,133 @@
+// E31 mix one iten has 2 taxes ...
+// El campo MontoGravadoI1 del área Totales de la sección Encabezado no coincide 
+// con la sumatoria de los valores del detalle gravado con tasa 18% menos 
+// descuentos mas recargos. | 
+// El campo MontoGravadoTotal del área Totales de la sección Encabezado no corresponde 
+// con la sumatoria de los items de su factura ya que excede la tolerancia de 100. | 
+// El campo TotalITBIS3 del área Totales de la sección Encabezado no coincide con 
+// la multiplicación de los campos de Monto Gravado 3 y ITBIS Tasa 3."
+
+
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 31,
+      "encf": "E310000000164",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 1,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "46400.07". //TODO: tax_totals.total_amount
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "codigoVendedor": "",
+      "numeroFacturaInterna": "INV/2025/11/0009",
+      "zonaVenta": "",
+      "fechaEmision": "26-11-2025"
+    },
+    "comprador": {
+      "rncComprador": "112106081",
+      "razonSocialComprador": "Huntours SRL",
+      "contactoComprador": "Huntours SRL",
+      "tablaTelefonoComprador": [],
+      "correoComprador": "",
+      "direccionComprador": "",
+      "municipioComprador": "",
+      "provinciaComprador": "",
+      "fechaEntrega": "26-11-2025",
+      "fechaOrdenCompra": "26-11-2025",
+      "numeroOrdenCompra": "S00623",
+      "codigoInternoComprador": "146"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "",
+      "numeroReferencia": 6222
+    },
+    "totales": {
+      "montoGravadoI1": "39216.16",     //TODO: tax_totals.subtotals.tax_groups[INDEX].base_amount
+      "itbis1": 18,                     //TODO: `"itbis1": 18` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "totalITBIS1": "7058.91",         //TODO: tax_totals.subtotals.tax_groups[INDEX].tax_amount
+
+    //   "montoGravadoI3": "1250.00",       //TODO: tax_totals.subtotals.tax_groups[INDEX].base_amount
+    //   "itbis3": 10,                     //TODO: `"itbis3": 10` IF 0.10 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+    //   "totalITBIS3": "125.00",          //TODO: tax_totals.subtotals.tax_groups[INDEX].tax_amount
+
+      "impuestosAdicionales": [
+       {
+         "tipoImpuesto": "001"
+         "tasaImpuestoAdicional": 10,
+        //  "otrosImpuestosAdicionales": "125.00"
+       }
+      ],
+
+      "montoGravadoTotal": "39216.16",  //TODO: tax_totals.base_amount
+      "totalITBIS": "7183.91",          //TODO: tax_totals.tax_amount
+      "montoImpuestoAdicional": "125.00",
+      "montoTotal": "46400.07"          //TODO: tax_totals.total_amount
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,   //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "nombreItem": "STP Matte Blanco 00",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 7,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "4745.77",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "33220.39"
+    },
+    {
+      "numeroLinea": 2,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,  //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "nombreItem": "STP Matte Crema\nAccesible Beige SW7036",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "4745.77",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "4745.77"
+    },
+    {
+      "numeroLinea": 3,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 1,     //TODO: `"indicadorFacturacion": 1` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
+      "nombreItem": "Esmalte Blanco",
+      "indicadorBienoServicio": 1,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "1250.00",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "1250.00"
+    }
+  ],
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "07-05-2026 02:33:26"
+}

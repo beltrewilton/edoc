@@ -1,0 +1,130 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 5612,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 9759.33,
+  "amount_tax": 1403.39,
+  "amount_total": 9759.33,
+  "amount_untaxed": 8355.94,
+  "commercial_partner_id": 356,
+  "company_id": 1,
+  "currency": "DOP",
+  "display_name": "INV/2025/11/0007",
+  "id": 5612,
+  "invoice_date": "2025-11-19",
+  "invoice_date_due": "2025-11-19",
+  "invoice_items": [
+    {
+      "account_id": [
+        159,
+        "41010100 Ventas de Bienes"
+      ],
+      "credit": 7796.62,
+      "debit": 0,
+      "discount": 0,
+      "id": 14819,
+      "name": "[STBMATCREM] STB Matte Crema\nVainilla 86",
+      "price_subtotal": 7796.62,
+      "price_total": 9200.01,
+      "price_unit": 3898.31,
+      "product_id": [
+        235,
+        "[STBMATCREM] STB Matte Crema"
+      ],
+      "quantity": 2,
+      "tax_ids": [
+        3
+      ],
+      "type": "consu"
+    },
+    {
+      "account_id": [
+        159,
+        "41010100 Ventas de Bienes"
+      ],
+      "credit": 559.32,
+      "debit": 0,
+      "discount": 0,
+      "id": 37365,
+      "name": "[BCHA3] Brocha #3",
+      "price_subtotal": 559.32,
+      "price_total": 559.32,
+      "price_unit": 139.83,
+      "product_id": [
+        287,
+        "[BCHA3] Brocha #3"
+      ],
+      "quantity": 4,
+      "tax_ids": [],
+      "type": "consu"
+    }
+  ],
+  "invoice_line_ids": [
+    14819,
+    37365
+  ],
+  "invoice_origin": "S00620",
+  "invoice_partner_display_name": "Yocasta Santana",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    14819,
+    14820,
+    14821,
+    37365
+  ],
+  "name": "INV/2025/11/0007",
+  "partner_id": 356,
+  "partner_vat": "131362702",
+  "payment_reference": "INV/2025/11/0007",
+  "payment_state": "not_paid",
+  "razonSocialComprador": "Yocasta Santana",
+  "ref": false,
+  "reversed_entry_id": false,
+  "rncComprador": "131362702",
+  "status_in_payment": "not_paid",
+  "tax_totals": {
+    "base_amount": 8355.94,
+    "base_amount_currency": 8355.94,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": false,
+    "subtotals": [
+      {
+        "base_amount": 8355.94,
+        "base_amount_currency": 8355.94,
+        "name": "Subtotal",
+        "tax_amount": 1403.39,
+        "tax_amount_currency": 1403.39,
+        "tax_groups": [
+          {
+            "base_amount": 7796.62,
+            "base_amount_currency": 7796.62,
+            "display_base_amount": 7796.62,
+            "display_base_amount_currency": 7796.62,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              3
+            ],
+            "tax_amount": 1403.39,
+            "tax_amount_currency": 1403.39
+          }
+        ]
+      }
+    ],
+    "tax_amount": 1403.39,
+    "tax_amount_currency": 1403.39,
+    "total_amount": 9759.33,
+    "total_amount_currency": 9759.33
+  },
+  "tipo_cambio": 1,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": false,
+  "x_studio_e_doc_inv": "E31"
+}

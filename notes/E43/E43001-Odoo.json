@@ -1,0 +1,110 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 12970,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 3160.84,
+  "amount_tax": 0,
+  "amount_total": 3160.84,
+  "amount_untaxed": 3160.84,
+  "commercial_partner_id": 150,
+  "company_id": 1,
+  "currency": "DOP",
+  "direccionEmisor": "Chaussée de Namur, 40, 1367 Grand-Rosiere, Belgium",
+  "display_name": "GASM/2026/04/0006",
+  "id": 12970,
+  "invoice_date": "2026-04-27",
+  "invoice_date_due": "2026-04-27",
+  "invoice_items": [
+    {
+      "account_id": [
+        174,
+        "51010100 Costos de Bienes"
+      ],
+      "credit": 0,
+      "debit": 3160.84,
+      "discount": 0,
+      "id": 37363,
+      "name": "Membresía",
+      "price_subtotal": 3160.84,
+      "price_total": 3160.84,
+      "price_unit": 3160.84,
+      "product_id": [
+        194,
+        "Membresía"
+      ],
+      "quantity": 1,
+      "tax_ids": [
+        2
+      ],
+      "type": "consu"
+    }
+  ],
+  "invoice_line_ids": [
+    37363
+  ],
+  "invoice_origin": false,
+  "invoice_partner_display_name": "Odoo",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    37363,
+    37364
+  ],
+  "name": "GASM/2026/04/0006",
+  "nombreComercial": "Odoo",
+  "partner_id": 150,
+  "payment_reference": false,
+  "payment_state": "not_paid",
+  "razonSocialEmisor": "Odoo",
+  "ref": false,
+  "reversed_entry_id": false,
+  "rncEmisor": "BE0861357327",
+  "status_in_payment": "not_paid",
+  "tablaTelefonoEmisor": [
+    "+1 650-691-3277"
+  ],
+  "tax_totals": {
+    "base_amount": 3160.84,
+    "base_amount_currency": 3160.84,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 3160.84,
+        "base_amount_currency": 3160.84,
+        "name": "Subtotal",
+        "tax_amount": 0,
+        "tax_amount_currency": 0,
+        "tax_groups": [
+          {
+            "base_amount": 3160.84,
+            "base_amount_currency": 3160.84,
+            "display_base_amount": 3160.84,
+            "display_base_amount_currency": 3160.84,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              2
+            ],
+            "tax_amount": 0,
+            "tax_amount_currency": 0
+          }
+        ]
+      }
+    ],
+    "tax_amount": 0,
+    "tax_amount_currency": 0,
+    "total_amount": 3160.84,
+    "total_amount_currency": 3160.84
+  },
+  "tipo_cambio": 1,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": "E43",
+  "x_studio_e_doc_inv": false
+}

@@ -1,0 +1,108 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 12967,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 638.75,
+  "amount_tax": -236.25,
+  "amount_total": 638.75,
+  "amount_untaxed": 875,
+  "commercial_partner_id": 396,
+  "company_id": 1,
+  "currency": "USD",
+  "direccionEmisor": "Bogotá, Colombia",
+  "display_name": "CEXT/2026/04/0003",
+  "id": 12967,
+  "invoice_date": "2026-04-27",
+  "invoice_date_due": "2026-04-27",
+  "invoice_items": [
+    {
+      "account_id": [
+        161,
+        "41020100 Ventas de Servicios"
+      ],
+      "credit": 0,
+      "debit": 51835,
+      "discount": 0,
+      "id": 37350,
+      "name": "Servicio de Consultoria\nHCM (Macrotech)",
+      "price_subtotal": 875,
+      "price_total": 638.75,
+      "price_unit": 25,
+      "product_id": [
+        211,
+        "Servicio de Consultoria"
+      ],
+      "quantity": 35,
+      "tax_ids": [
+        33
+      ],
+      "type": "service"
+    }
+  ],
+  "invoice_line_ids": [
+    37350
+  ],
+  "invoice_origin": false,
+  "invoice_partner_display_name": "Carlos Felipe Castaño Velez",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    37350,
+    37351,
+    37352
+  ],
+  "name": "CEXT/2026/04/0003",
+  "nombreComercial": "Carlos Felipe Castaño Velez",
+  "partner_id": 396,
+  "payment_reference": false,
+  "payment_state": "not_paid",
+  "razonSocialEmisor": "Carlos Felipe Castaño Velez",
+  "ref": false,
+  "reversed_entry_id": false,
+  "rncEmisor": "75082948",
+  "status_in_payment": "not_paid",
+  "tax_totals": {
+    "base_amount": 51835,
+    "base_amount_currency": 875,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 2,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 51835,
+        "base_amount_currency": 875,
+        "name": "Subtotal",
+        "tax_amount": -13995.45,
+        "tax_amount_currency": -236.25,
+        "tax_groups": [
+          {
+            "base_amount": 51835,
+            "base_amount_currency": 875,
+            "display_base_amount": 51835,
+            "display_base_amount_currency": 875,
+            "group_label": false,
+            "group_name": "ISR",
+            "id": 20,
+            "involved_tax_ids": [
+              33
+            ],
+            "tax_amount": -13995.45,
+            "tax_amount_currency": -236.25
+          }
+        ]
+      }
+    ],
+    "tax_amount": -13995.45,
+    "tax_amount_currency": -236.25,
+    "total_amount": 37839.55,
+    "total_amount_currency": 638.75
+  },
+  "tipo_cambio": 59.24000000000001,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": "E47",
+  "x_studio_e_doc_inv": false
+}

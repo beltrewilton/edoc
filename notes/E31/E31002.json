@@ -1,0 +1,91 @@
+// E31 consumer tax credit invoice in USD with exchange-rate conversion
+
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 31,
+      "encf": "E310000000150",
+      "FechaLimitePago": "20-04-2026",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "indicadorMontoGravado": 0,
+      "tipoIngresos": "01",
+      "tipoPago": 2,
+      "tablaFormasPago": [
+        {
+          "formaPago": 2,
+          "montoPago": "182542.50" //TODO: tax_totals.total_amount
+        }
+      ]
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "codigoVendedor": "",
+      "numeroFacturaInterna": "INV/2026/04/0001",
+      "zonaVenta": "",
+      "fechaEmision": "07-04-2026"
+    },
+    "comprador": {
+      "rncComprador": "131362703",
+      "razonSocialComprador": "C2S Consulting",
+      "contactoComprador": "C2S Consulting",
+      "tablaTelefonoComprador": [
+        "+1 787-620-8188"
+      ],
+      "correoComprador": "",
+      "direccionComprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
+      "municipioComprador": "",
+      "provinciaComprador": "",
+      "fechaEntrega": "07-05-2026",
+      "fechaOrdenCompra": "07-04-2026",
+      "numeroOrdenCompra": "S00654",
+      "codigoInternoComprador": "312"
+    },
+    "informacionesAdicionales": {
+      "numeroContenedor": "",
+      "numeroReferencia": 12888
+    },
+    "totales": {
+      "MontoExento": "182542.50",  //TODO: tax_totals.total_amount
+      "totalITBIS": "0.00",
+      "impuestosAdicionales": [],
+      "montoTotal": "182542.50"   //TODO: tax_totals.total_amount
+    },
+    "otraMoneda": {
+      "tipoMoneda": "USD",
+      "tipoCambio": "57.94",                //TODO: tipo_cambio
+      "MontoExentoOtraMoneda": "3150.00",  //TODO: tax_totals.total_amount_currency
+      "totalITBISOtraMoneda": "0.00",
+      "impuestosAdicionalesOtraMoneda": [],
+      "montoTotalOtraMoneda": "3150.00"   //TODO: tax_totals.total_amount_currency
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,      //TODO: `"indicadorFacturacion": 4` IF  "tipo_cambio" is != 1 or is Nil/Null
+      "nombreItem": "Consultor SAP - Juan Carlos Alvarez",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 63,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "2897.50",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "montoItem": "182542.50"
+    }
+  ],
+  "tipo_cambio": 57.94,           //TODO: tipo_cambio
+  "subtotales": [],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "07-05-2026 01:55:45"
+}
