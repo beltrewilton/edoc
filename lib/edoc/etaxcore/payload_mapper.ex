@@ -37,7 +37,11 @@ defmodule Edoc.Etaxcore.PayloadMapper do
 
   @spec map_invoice(map(), Company.t(), keyword()) :: map()
   def map_invoice(payload, %Company{} = company, opts \\ []) when is_map(payload) do
-    case resolve_tipo_ecf(payload, opts) do
+    e_doc = generated_edoc!(opts)
+
+    opts = Keyword.put(opts, :e_doc, e_doc)
+
+    case parse_tipo_ecf(e_doc) do
       31 ->
         map_e31(payload, company, opts)
 
@@ -54,7 +58,7 @@ defmodule Edoc.Etaxcore.PayloadMapper do
         map_e47(payload, company, opts)
 
       nil ->
-        map_e31(payload, company, opts)
+        raise ArgumentError, "invalid generated e_doc for encf"
 
       tipo_ecf ->
         raise ArgumentError,
@@ -62,17 +66,16 @@ defmodule Edoc.Etaxcore.PayloadMapper do
     end
   end
 
-  defp resolve_tipo_ecf(payload, opts) do
-    Keyword.get(opts, :e_doc)
-    |> parse_tipo_ecf()
-    |> case do
-      nil ->
-        (payload_value(payload, "x_studio_e_doc_inv") ||
-           payload_value(payload, "x_studio_e_doc_bill"))
-        |> parse_tipo_ecf()
+  defp generated_edoc!(opts) do
+    case Keyword.get(opts, :e_doc) do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> raise ArgumentError, "missing generated e_doc for encf"
+          e_doc -> e_doc
+        end
 
-      tipo_ecf ->
-        tipo_ecf
+      _value ->
+        raise ArgumentError, "missing generated e_doc for encf"
     end
   end
 
@@ -84,11 +87,4 @@ defmodule Edoc.Etaxcore.PayloadMapper do
   end
 
   defp parse_tipo_ecf(_value), do: nil
-
-  defp payload_value(%{} = payload, key) when is_atom(key) do
-    Map.get(payload, key) || Map.get(payload, Atom.to_string(key))
-  end
-
-  defp payload_value(%{} = payload, key) when is_binary(key), do: Map.get(payload, key)
-  defp payload_value(_payload, _key), do: nil
 end

@@ -14,6 +14,8 @@ defmodule Edoc.Etaxcore.InvoiceService do
   alias Edoc.Transaction
   require Logger
 
+  @bill_ecf_types [41, 43, 47]
+
   @type odoo_context :: {Odoo.t(), integer()} | nil
 
   @type success_result :: %{
@@ -304,7 +306,7 @@ defmodule Edoc.Etaxcore.InvoiceService do
          tenant,
          payload,
          request_payload,
-         e_doc \\ nil
+         e_doc
        ) do
     attrs = %{
       company_id: company_id,
@@ -558,7 +560,8 @@ defmodule Edoc.Etaxcore.InvoiceService do
     |> resolve_edoc_prefix()
     |> case do
       nil ->
-        {:ok, nil, nil}
+        Logger.error("Unable to generate E-DOC: missing or invalid e-CF prefix")
+        {:error, :missing_edoc_prefix}
 
       {prefix, doc_type} ->
         case Accounts.next_tax_sequence(prefix) do
@@ -573,18 +576,48 @@ defmodule Edoc.Etaxcore.InvoiceService do
   end
 
   defp resolve_edoc_prefix(payload) do
-    bill = payload_value(payload, "x_studio_e_doc_bill")
-    inv = payload_value(payload, "x_studio_e_doc_inv")
+    [
+      {"x_studio_e_doc_bill", "BILL"},
+      {"x_studio_e_doc_inv", "INV"},
+      {"x_studio_e_doc", :infer}
+    ]
+    |> Enum.find_value(fn {key, doc_type} ->
+      payload
+      |> payload_value(key)
+      |> normalize_edoc_prefix()
+      |> case do
+        nil -> nil
+        prefix -> {prefix, resolve_doc_type(prefix, doc_type)}
+      end
+    end)
+  end
 
-    cond do
-      valid_identifier?(bill) -> {bill, "BILL"}
-      valid_identifier?(inv) -> {inv, "INV"}
-      true -> nil
+  defp normalize_edoc_prefix(value) when is_binary(value) do
+    case Regex.run(~r/^E?(\d{2})/, String.trim(value)) do
+      [_, digits] -> "E" <> digits
+      _ -> nil
     end
   end
 
-  defp valid_identifier?(value) when is_binary(value), do: String.trim(value) != ""
-  defp valid_identifier?(_), do: false
+  defp normalize_edoc_prefix(_value), do: nil
+
+  defp resolve_doc_type(_prefix, doc_type) when doc_type in ["BILL", "INV"], do: doc_type
+
+  defp resolve_doc_type(prefix, :infer) do
+    case parse_tipo_ecf(prefix) do
+      tipo_ecf when tipo_ecf in @bill_ecf_types -> "BILL"
+      _tipo_ecf -> "INV"
+    end
+  end
+
+  defp parse_tipo_ecf(value) when is_binary(value) do
+    case Regex.run(~r/^E?(\d{2})/, String.trim(value)) do
+      [_, digits] -> String.to_integer(digits)
+      _ -> nil
+    end
+  end
+
+  defp parse_tipo_ecf(_value), do: nil
 
   defp format_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
 
