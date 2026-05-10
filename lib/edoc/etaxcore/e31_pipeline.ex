@@ -4,6 +4,7 @@ defmodule Edoc.Etaxcore.E31Pipeline do
   """
 
   alias Edoc.Accounts.Company
+  alias Edoc.Etaxcore.PayloadSupport
 
   @fecha_vencimiento_secuencia "31-12-2028"
   @direccion_comprador_max_length 99
@@ -259,8 +260,16 @@ defmodule Edoc.Etaxcore.E31Pipeline do
 
   defp indicador_facturacion(item, payload) do
     cond do
-      foreign_currency_payload?(payload) -> 4
+      item_has_tax?(item) -> indicador_facturacion_from_tax(item, payload)
+      unknown_or_foreign_currency_payload?(payload) -> 4
       zero_tax_item?(item) -> 3
+      zero_amount?(tax_amount(payload)) -> 4
+      true -> 1
+    end
+  end
+
+  defp indicador_facturacion_from_tax(item, payload) do
+    cond do
       item_tax_rate(item, payload) == 18 -> 1
       item_tax_rate(item, payload) == 16 -> 2
       zero_amount?(tax_amount(payload)) -> 4
@@ -552,6 +561,7 @@ defmodule Edoc.Etaxcore.E31Pipeline do
   defp normalize_item(_), do: %{}
 
   defp zero_tax_item?(item), do: tax_ids(item) == []
+  defp item_has_tax?(item), do: tax_ids(item) != []
 
   defp tax_ids(item) do
     item
@@ -589,8 +599,16 @@ defmodule Edoc.Etaxcore.E31Pipeline do
     end
   end
 
+  defp unknown_or_foreign_currency_payload?(payload) do
+    case exchange_rate(payload) do
+      1 -> false
+      1.0 -> false
+      _rate -> true
+    end
+  end
+
   defp exchange_rate(payload) do
-    numeric(value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"]))
+    PayloadSupport.exchange_rate(payload)
   end
 
   defp item_bieno_servicio_indicator(item) do

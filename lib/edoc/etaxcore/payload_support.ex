@@ -91,6 +91,31 @@ defmodule Edoc.Etaxcore.PayloadSupport do
   def zero_amount?(value) when is_number(value), do: abs(value) < 0.000001
   def zero_amount?(_value), do: false
 
+  @spec exchange_rate(map()) :: number() | nil
+  def exchange_rate(payload) when is_map(payload) do
+    computed_exchange_rate(payload) || explicit_exchange_rate(payload)
+  end
+
+  def exchange_rate(_payload), do: nil
+
+  defp computed_exchange_rate(payload) do
+    with %{} = totals <- payload_value(payload, "tax_totals"),
+         total_amount when is_number(total_amount) <- numeric(Map.get(totals, "total_amount")),
+         total_amount_currency when is_number(total_amount_currency) <-
+           numeric(Map.get(totals, "total_amount_currency")),
+         false <- zero_amount?(total_amount_currency) do
+      abs(total_amount / total_amount_currency)
+    else
+      _other -> nil
+    end
+  end
+
+  defp explicit_exchange_rate(payload) do
+    payload
+    |> value_from_keys(["tipoCambio", "tipo_cambio", "exchange_rate"])
+    |> numeric()
+  end
+
   defp put_document_amount(payload, target_key, source_key) do
     case tax_totals_value(payload, source_key) do
       nil -> payload

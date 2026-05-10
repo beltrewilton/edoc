@@ -287,9 +287,7 @@ defmodule Edoc.Etaxcore.E43Pipeline do
   end
 
   defp exchange_rate(payload) do
-    PayloadSupport.numeric(
-      PayloadSupport.value_from_keys(payload, ["tipoCambio", "tipo_cambio", "exchange_rate"])
-    )
+    PayloadSupport.exchange_rate(payload)
   end
 
   defp build_fecha_hora_firma(payload, opts) do

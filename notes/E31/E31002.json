@@ -59,7 +59,7 @@
     },
     "otraMoneda": {
       "tipoMoneda": "USD",
-      "tipoCambio": "57.94",                //TODO: tipo_cambio
+      "tipoCambio": "57.95",                //TODO: tax_totals.total_amount / tax_totals.total_amount_currency
       "MontoExentoOtraMoneda": "3150.00",  //TODO: tax_totals.total_amount_currency
       "totalITBISOtraMoneda": "0.00",
       "impuestosAdicionalesOtraMoneda": [],
@@ -70,7 +70,7 @@
     {
       "numeroLinea": 1,
       "tablaCodigosItem": [],
-      "indicadorFacturacion": 4,      //TODO: `"indicadorFacturacion": 4` IF  "tipo_cambio" is != 1 or is Nil/Null
+      "indicadorFacturacion": 4,      //TODO: `"indicadorFacturacion": 4` IF  "tipo_cambio" is != 1 or is Nil/Null, BUT IF the item with tax_ids  len != 0 (has tax) THEN follow the % tax rule `"itbis1": 18` IF 0.18 == ROUND TO 2 DECIMALS(tax_totals.subtotals.tax_groups[INDEX].tax_amount / tax_totals.subtotals.tax_groups[INDEX].base_amount)
       "nombreItem": "Consultor SAP - Juan Carlos Alvarez",
       "indicadorBienoServicio": 2,
       "cantidadItem": 63,
@@ -83,7 +83,7 @@
       "montoItem": "182542.50"
     }
   ],
-  "tipo_cambio": 57.94,           //TODO: tipo_cambio
+  "tipo_cambio": 57.95,           //TODO: tax_totals.total_amount / tax_totals.total_amount_currency
   "subtotales": [],
   "descuentosORecargos": [],
   "paginacion": [],
