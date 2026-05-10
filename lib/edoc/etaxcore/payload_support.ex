@@ -116,6 +116,82 @@ defmodule Edoc.Etaxcore.PayloadSupport do
     |> numeric()
   end
 
+  @spec indicador_facturacion_from_tax_rate(map(), map()) :: 1 | 2 | nil
+  def indicador_facturacion_from_tax_rate(item, payload) when is_map(item) and is_map(payload) do
+    case item_tax_rate(item, payload) do
+      18 -> 1
+      16 -> 2
+      _rate -> nil
+    end
+  end
+
+  def indicador_facturacion_from_tax_rate(_item, _payload), do: nil
+
+  @spec item_tax_rate(map(), map()) :: 18 | 16 | 0 | nil
+  def item_tax_rate(item, payload) when is_map(item) and is_map(payload) do
+    item
+    |> item_tax_ids()
+    |> Enum.find_value(fn tax_id ->
+      payload
+      |> tax_groups()
+      |> Enum.find_value(fn group ->
+        involved_tax_ids = Map.get(group, "involved_tax_ids", [])
+
+        if tax_id in List.wrap(involved_tax_ids) do
+          group
+          |> tax_group_rate()
+          |> rate_to_itbis()
+        end
+      end)
+    end)
+  end
+
+  def item_tax_rate(_item, _payload), do: nil
+
+  @spec item_tax_ids(map()) :: [integer() | String.t()]
+  def item_tax_ids(item) when is_map(item) do
+    item
+    |> payload_value("tax_ids")
+    |> List.wrap()
+    |> Enum.filter(&(is_integer(&1) or is_binary(&1)))
+  end
+
+  def item_tax_ids(_item), do: []
+
+  @spec tax_groups(map()) :: [map()]
+  def tax_groups(payload) when is_map(payload) do
+    payload
+    |> payload_value("tax_totals")
+    |> case do
+      %{} = totals ->
+        totals
+        |> Map.get("subtotals", [])
+        |> List.wrap()
+        |> Enum.flat_map(fn subtotal -> subtotal |> Map.get("tax_groups", []) |> List.wrap() end)
+        |> Enum.filter(&is_map/1)
+
+      _other ->
+        []
+    end
+  end
+
+  def tax_groups(_payload), do: []
+
+  defp tax_group_rate(group) do
+    base = numeric(Map.get(group, "base_amount"))
+    tax = numeric(Map.get(group, "tax_amount"))
+
+    cond do
+      is_nil(base) or is_nil(tax) or zero_amount?(base) -> nil
+      true -> Float.round(tax / base, 2)
+    end
+  end
+
+  defp rate_to_itbis(0.18), do: 18
+  defp rate_to_itbis(0.16), do: 16
+  defp rate_to_itbis(rate) when rate in [0, 0.0], do: 0
+  defp rate_to_itbis(_rate), do: nil
+
   defp put_document_amount(payload, target_key, source_key) do
     case tax_totals_value(payload, source_key) do
       nil -> payload

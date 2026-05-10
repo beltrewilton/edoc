@@ -128,7 +128,7 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
-        "indicadorFacturacion" => 4,
+        "indicadorFacturacion" => indicador_facturacion(item, payload),
         "retencion" => %{
           "indicadorAgenteRetencionoPercepcion" => 1,
           "montoISRRetenido" => item_retention || retention
@@ -149,6 +149,10 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
         "montoItem" => amount
       }
     end)
+  end
+
+  defp indicador_facturacion(item, payload) do
+    PayloadSupport.indicador_facturacion_from_tax_rate(item, payload) || 4
   end
 
   defp build_subtotales(payload) do

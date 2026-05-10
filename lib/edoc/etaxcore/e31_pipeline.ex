@@ -269,30 +269,13 @@ defmodule Edoc.Etaxcore.E31Pipeline do
   end
 
   defp indicador_facturacion_from_tax(item, payload) do
-    cond do
-      item_tax_rate(item, payload) == 18 -> 1
-      item_tax_rate(item, payload) == 16 -> 2
-      zero_amount?(tax_amount(payload)) -> 4
-      true -> 1
+    case PayloadSupport.indicador_facturacion_from_tax_rate(item, payload) do
+      nil ->
+        if zero_amount?(tax_amount(payload)), do: 4, else: 1
+
+      indicador ->
+        indicador
     end
-  end
-
-  defp item_tax_rate(item, payload) do
-    item
-    |> tax_ids()
-    |> Enum.find_value(fn tax_id ->
-      payload
-      |> tax_groups()
-      |> Enum.find_value(fn group ->
-        involved_tax_ids = Map.get(group, "involved_tax_ids", [])
-
-        if tax_id in List.wrap(involved_tax_ids) do
-          group
-          |> tax_group_rate()
-          |> rate_to_itbis()
-        end
-      end)
-    end)
   end
 
   defp tax_group_rate(group) do
@@ -535,19 +518,7 @@ defmodule Edoc.Etaxcore.E31Pipeline do
   end
 
   defp tax_groups(payload) do
-    payload
-    |> payload_value("tax_totals")
-    |> case do
-      %{} = totals ->
-        totals
-        |> Map.get("subtotals", [])
-        |> List.wrap()
-        |> Enum.flat_map(fn subtotal -> subtotal |> Map.get("tax_groups", []) |> List.wrap() end)
-        |> Enum.filter(&is_map/1)
-
-      _ ->
-        []
-    end
+    PayloadSupport.tax_groups(payload)
   end
 
   defp invoice_items(payload) do
@@ -564,10 +535,7 @@ defmodule Edoc.Etaxcore.E31Pipeline do
   defp item_has_tax?(item), do: tax_ids(item) != []
 
   defp tax_ids(item) do
-    item
-    |> payload_value("tax_ids")
-    |> List.wrap()
-    |> Enum.filter(&(is_integer(&1) or is_binary(&1)))
+    PayloadSupport.item_tax_ids(item)
   end
 
   defp indicador_monto_gravado(payload) do

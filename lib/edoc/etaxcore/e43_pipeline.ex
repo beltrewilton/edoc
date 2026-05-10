@@ -84,7 +84,7 @@ defmodule Edoc.Etaxcore.E43Pipeline do
       %{
         "numeroLinea" => index,
         "tablaCodigosItem" => [],
-        "indicadorFacturacion" => 4,
+        "indicadorFacturacion" => indicador_facturacion(item, payload),
         "nombreItem" => item_name(item),
         "indicadorBienoServicio" => item_bieno_servicio_indicator(item, 2),
         "cantidadItem" => quantity,
@@ -97,6 +97,10 @@ defmodule Edoc.Etaxcore.E43Pipeline do
         "montoItem" => amount
       }
     end)
+  end
+
+  defp indicador_facturacion(item, payload) do
+    PayloadSupport.indicador_facturacion_from_tax_rate(item, payload) || 4
   end
 
   defp maybe_put_otra_moneda(%{"encabezado" => %{} = encabezado} = mapped_payload, payload) do

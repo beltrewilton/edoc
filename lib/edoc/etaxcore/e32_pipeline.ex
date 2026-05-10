@@ -129,29 +129,7 @@ defmodule Edoc.Etaxcore.E32Pipeline do
   end
 
   defp indicador_facturacion(item, payload) do
-    cond do
-      item_tax_rate(item, payload) == 18 -> 1
-      item_tax_rate(item, payload) == 16 -> 2
-      true -> 4
-    end
-  end
-
-  defp item_tax_rate(item, payload) do
-    item
-    |> tax_ids()
-    |> Enum.find_value(fn tax_id ->
-      payload
-      |> tax_groups()
-      |> Enum.find_value(fn group ->
-        involved_tax_ids = Map.get(group, "involved_tax_ids", [])
-
-        if tax_id in List.wrap(involved_tax_ids) do
-          group
-          |> tax_group_rate()
-          |> rate_to_itbis()
-        end
-      end)
-    end)
+    PayloadSupport.indicador_facturacion_from_tax_rate(item, payload) || 4
   end
 
   defp itbis_bucket(base, tax) do
@@ -163,16 +141,6 @@ defmodule Edoc.Etaxcore.E32Pipeline do
       16 -> 2
       0 -> 4
       _other -> nil
-    end
-  end
-
-  defp tax_group_rate(group) do
-    base = PayloadSupport.numeric(Map.get(group, "base_amount"))
-    tax = PayloadSupport.numeric(Map.get(group, "tax_amount"))
-
-    cond do
-      is_nil(base) or is_nil(tax) or PayloadSupport.zero_amount?(base) -> nil
-      true -> Float.round(tax / base, 2)
     end
   end
 
@@ -217,19 +185,7 @@ defmodule Edoc.Etaxcore.E32Pipeline do
   end
 
   defp tax_groups(payload) do
-    payload
-    |> PayloadSupport.payload_value("tax_totals")
-    |> case do
-      %{} = totals ->
-        totals
-        |> Map.get("subtotals", [])
-        |> List.wrap()
-        |> Enum.flat_map(fn subtotal -> subtotal |> Map.get("tax_groups", []) |> List.wrap() end)
-        |> Enum.filter(&is_map/1)
-
-      _other ->
-        []
-    end
+    PayloadSupport.tax_groups(payload)
   end
 
   defp invoice_items(payload) do
@@ -245,10 +201,7 @@ defmodule Edoc.Etaxcore.E32Pipeline do
   defp zero_tax_item?(item), do: tax_ids(item) == []
 
   defp tax_ids(item) do
-    item
-    |> PayloadSupport.payload_value("tax_ids")
-    |> List.wrap()
-    |> Enum.filter(&(is_integer(&1) or is_binary(&1)))
+    PayloadSupport.item_tax_ids(item)
   end
 
   defp item_subtotal(item) do
