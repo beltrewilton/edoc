@@ -1,0 +1,112 @@
+// E32 this is a payload with USD exchange
+
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 13167,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 6300,
+  "amount_tax": 0,
+  "amount_total": 6300,
+  "amount_untaxed": 6300,
+  "commercial_partner_id": 312,
+  "company_id": 1,
+  "currency": "USD",
+  "direccionComprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
+  "direccion_comprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
+  "display_name": "INV/2026/05/0004",
+  "id": 13167,
+  "invoice_date": "2026-05-11",
+  "invoice_date_due": "2026-05-11",
+  "invoice_items": [
+    {
+      "account_id": [
+        161,
+        "41020100 Ventas de Servicios"
+      ],
+      "credit": 371763,
+      "debit": 0,
+      "discount": 0,
+      "id": 37997,
+      "name": "Consultor SAP - Juan Carlos Alvarez",
+      "price_subtotal": 6300,
+      "price_total": 6300,
+      "price_unit": 50,
+      "product_id": [
+        229,
+        "Consultor SAP"
+      ],
+      "quantity": 126,
+      "tax_ids": [
+        1
+      ],
+      "type": "service"
+    }
+  ],
+  "invoice_line_ids": [
+    37997
+  ],
+  "invoice_origin": "S00662",
+  "invoice_partner_display_name": "C2S Consulting",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    37997,
+    37998
+  ],
+  "name": "INV/2026/05/0004",
+  "partner_address": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
+  "partner_id": 312,
+  "payment_reference": "INV/2026/05/0004",
+  "payment_state": "not_paid",
+  "razonSocialComprador": "C2S Consulting",
+  "ref": "",
+  "reversed_entry_id": false,
+  "status_in_payment": "not_paid",
+  "tablaTelefonoComprador": [
+    "+1 787-620-8188"
+  ],
+  "tax_totals": {
+    "base_amount": 371763,
+    "base_amount_currency": 6300,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 2,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 371763,
+        "base_amount_currency": 6300,
+        "name": "Subtotal",
+        "tax_amount": 0,
+        "tax_amount_currency": 0,
+        "tax_groups": [
+          {
+            "base_amount": 371763,
+            "base_amount_currency": 6300,
+            "display_base_amount": 371763,
+            "display_base_amount_currency": 6300,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              1
+            ],
+            "tax_amount": 0,
+            "tax_amount_currency": 0
+          }
+        ]
+      }
+    ],
+    "tax_amount": 0,
+    "tax_amount_currency": 0,
+    "total_amount": 371763,
+    "total_amount_currency": 6300
+  },
+  "tipo_cambio": 59.01,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": false,
+  "x_studio_e_doc_inv": "E32"
+}

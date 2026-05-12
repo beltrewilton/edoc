@@ -1,9 +1,11 @@
+// E32 - this is NOT the expected ouput, DO NOT take this as source of truth
+
 {
   "encabezado": {
     "version": "1.0",
     "idDoc": {
       "tipoeCF": 32,
-      "encf": "E320000000132",
+      "encf": "E320000000143",
       "fechaVencimientoSecuencia": "31-12-2028",
       "indicadorMontoGravado": 0,
       "tipoIngresos": "01",
@@ -11,7 +13,7 @@
       "tablaFormasPago": [
         {
           "formaPago": 2,
-          "montoPago": "118480.00"
+          "montoPago": "371763.00"
         }
       ]
     },
@@ -24,46 +26,38 @@
       "correoEmisor": "",
       "webSite": "",
       "codigoVendedor": "",
-      "numeroFacturaInterna": "INV/2026/04/0008",
+      "numeroFacturaInterna": "INV/2026/05/0004",
       "zonaVenta": "",
-      "fechaEmision": "27-04-2026"
+      "fechaEmision": "11-05-2026"
     },
     "comprador": {
       "rncComprador": "",
-      "razonSocialComprador": "Logisticai LLC",
-      "contactoComprador": "Logisticai LLC",
-      "tablaTelefonoComprador": [],
+      "razonSocialComprador": "C2S Consulting",
+      "contactoComprador": "C2S Consulting",
+      "tablaTelefonoComprador": [
+        "+1 787-620-8188"
+      ],
       "correoComprador": "",
-      "direccionComprador": "EIN:30-1422215, 34711 Florida, Estados Unidos",
+      "direccionComprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
       "municipioComprador": "",
       "provinciaComprador": "",
-      "fechaEntrega": "27-04-2026",
-      "fechaOrdenCompra": "27-04-2026",
-      "numeroOrdenCompra": "S00660",
-      "codigoInternoComprador": "390"
+      "fechaEntrega": "11-05-2026",
+      "fechaOrdenCompra": "11-05-2026",
+      "numeroOrdenCompra": "S00662",
+      "codigoInternoComprador": "312"
     },
     "informacionesAdicionales": {
       "numeroContenedor": "",
-      "numeroReferencia": 12966
+      "numeroReferencia": 13167
     },
     "totales": {
-      "montoGravadoTotal": "118480.00",
-      "montoGravadoI1": "118480.00",
+      "montoGravadoTotal": "371763.00",
+      "montoGravadoI1": "371763.00",
       "itbis1": 0,
       "totalITBIS": "0.00",
       "totalITBIS1": "0.00",
       "impuestosAdicionales": [],
-      "montoTotal": "118480.00"
-    },
-    "otraMoneda": {
-      "tipoMoneda": "USD",
-      "tipoCambio": "59.24",
-      "montoGravadoTotalOtraMoneda": "2000.00",
-      "montoGravado1OtraMoneda": "2000.00",
-      "totalITBISOtraMoneda": "0.00",
-      "totalITBIS1OtraMoneda": "0.00",
-      "impuestosAdicionalesOtraMoneda": [],
-      "montoTotalOtraMoneda": "2000.00"
+      "montoTotal": "371763.00"
     }
   },
   "detallesItems": [
@@ -71,20 +65,20 @@
       "numeroLinea": 1,
       "tablaCodigosItem": [],
       "indicadorFacturacion": 4,
-      "nombreItem": "Consultoria de gerencia de Proyectos",
+      "nombreItem": "Consultor SAP - Juan Carlos Alvarez",
       "indicadorBienoServicio": 2,
-      "cantidadItem": 1,
+      "cantidadItem": 126,
       "unidadMedida": "43",
       "tablaSubcantidad": [],
-      "precioUnitarioItem": "118480.00",
+      "precioUnitarioItem": "2950.50",
       "tablaSubDescuento": [],
       "tablaSubRecargo": [],
       "tablaImpuestoAdicional": [],
-      "montoItem": "118480.00"
+      "montoItem": "371763.00"
     }
   ],
   "subtotales": [],
   "descuentosORecargos": [],
   "paginacion": [],
-  "fechaHoraFirma": "27-04-2026 20:45:56"
+  "fechaHoraFirma": "11-05-2026 13:28:01"
 }

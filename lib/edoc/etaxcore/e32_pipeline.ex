@@ -19,23 +19,33 @@ defmodule Edoc.Etaxcore.E32Pipeline do
                      "totalITBIS2",
                      "totalITBIS3",
                      "montoTotal",
+                     "tipoCambio",
+                     "montoGravadoTotalOtraMoneda",
+                     "montoGravado1OtraMoneda",
+                     "montoGravado2OtraMoneda",
+                     "montoGravado3OtraMoneda",
+                     "montoExentoOtraMoneda",
+                     "totalITBISOtraMoneda",
+                     "totalITBIS1OtraMoneda",
+                     "totalITBIS2OtraMoneda",
+                     "totalITBIS3OtraMoneda",
+                     "montoTotalOtraMoneda",
                      "precioUnitarioItem",
                      "montoItem"
                    ])
 
   @spec map(map(), Company.t(), keyword()) :: map()
   def map(payload, %Company{} = company, opts \\ []) when is_map(payload) do
-    document_payload = PayloadSupport.document_currency_payload(payload)
-
-    document_payload
+    payload
     |> E31Pipeline.map(company, opts)
     |> Map.update!("encabezado", fn encabezado ->
       encabezado
       |> update_in(["idDoc"], &Map.put(&1, "tipoeCF", 32))
-      |> Map.put("totales", build_totales(document_payload))
+      |> Map.put("totales", build_totales(payload))
       |> Map.delete("otraMoneda")
     end)
-    |> Map.update!("detallesItems", &build_detalles_items(&1, document_payload))
+    |> maybe_put_otra_moneda(payload)
+    |> Map.update!("detallesItems", &build_detalles_items(&1, payload))
     |> Map.delete("tipo_cambio")
     |> PayloadSupport.normalize_currency_fields(@currency_fields)
   end
@@ -132,6 +142,103 @@ defmodule Edoc.Etaxcore.E32Pipeline do
     PayloadSupport.indicador_facturacion_from_tax_rate(item, payload) || 4
   end
 
+  defp maybe_put_otra_moneda(%{"encabezado" => %{} = encabezado} = mapped_payload, payload) do
+    if foreign_currency_payload?(payload) do
+      Map.put(
+        mapped_payload,
+        "encabezado",
+        Map.put(encabezado, "otraMoneda", build_otra_moneda(payload, encabezado["totales"] || %{}))
+      )
+    else
+      mapped_payload
+    end
+  end
+
+  defp build_otra_moneda(payload, totales) do
+    base = tax_totals_value(payload, "base_amount_currency")
+    tax = tax_totals_value(payload, "tax_amount_currency")
+    total = tax_totals_value(payload, "total_amount_currency")
+
+    %{
+      "tipoMoneda" =>
+        PayloadSupport.value_from_keys(payload, ["tipoMoneda", "tipo_moneda", "currency"])
+        |> string_or_default("USD"),
+      "tipoCambio" => exchange_rate(payload) || 1,
+      "impuestosAdicionalesOtraMoneda" => []
+    }
+    |> maybe_put_otra_amount(
+      "montoGravadoTotalOtraMoneda",
+      Map.has_key?(totales, "montoGravadoTotal"),
+      base
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado1OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI1"),
+      tax_group_currency_amount(payload, 18) || tax_group_currency_amount(payload, 0) || base
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado2OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI2"),
+      tax_group_currency_amount(payload, 16) || base
+    )
+    |> maybe_put_otra_amount(
+      "montoGravado3OtraMoneda",
+      Map.has_key?(totales, "montoGravadoI3"),
+      tax_group_currency_amount(payload, 0) || zero_tax_items_currency_total(payload)
+    )
+    |> maybe_put_otra_amount(
+      "montoExentoOtraMoneda",
+      Map.has_key?(totales, "montoExento"),
+      total
+    )
+    |> maybe_put_otra_amount(
+      "totalITBISOtraMoneda",
+      Map.has_key?(totales, "totalITBIS"),
+      tax
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS1OtraMoneda",
+      Map.has_key?(totales, "totalITBIS1"),
+      tax_group_currency_tax(payload, 18) || tax_group_currency_tax(payload, 0) || tax
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS2OtraMoneda",
+      Map.has_key?(totales, "totalITBIS2"),
+      tax_group_currency_tax(payload, 16) || tax
+    )
+    |> maybe_put_otra_amount(
+      "totalITBIS3OtraMoneda",
+      Map.has_key?(totales, "totalITBIS3"),
+      tax_group_currency_tax(payload, 0) || 0
+    )
+    |> maybe_put_otra_amount("montoTotalOtraMoneda", Map.has_key?(totales, "montoTotal"), total)
+  end
+
+  defp maybe_put_otra_amount(map, _key, false, _value), do: map
+  defp maybe_put_otra_amount(map, _key, true, nil), do: map
+  defp maybe_put_otra_amount(map, key, true, value), do: Map.put(map, key, value)
+
+  defp tax_group_currency_amount(payload, rate) do
+    find_tax_group_by_rate(payload, rate, &PayloadSupport.numeric(Map.get(&1, "base_amount_currency")))
+  end
+
+  defp tax_group_currency_tax(payload, rate) do
+    find_tax_group_by_rate(payload, rate, &PayloadSupport.numeric(Map.get(&1, "tax_amount_currency")))
+  end
+
+  defp find_tax_group_by_rate(payload, expected_rate, callback) do
+    payload
+    |> tax_groups()
+    |> Enum.find_value(fn group ->
+      group_rate =
+        group
+        |> tax_group_rate()
+        |> rate_to_itbis()
+
+      if group_rate == expected_rate, do: callback.(group)
+    end)
+  end
+
   defp itbis_bucket(base, tax) do
     base
     |> tax_rate(tax)
@@ -147,6 +254,16 @@ defmodule Edoc.Etaxcore.E32Pipeline do
   defp tax_rate(base, tax) do
     cond do
       PayloadSupport.zero_amount?(base) -> nil
+      true -> Float.round(tax / base, 2)
+    end
+  end
+
+  defp tax_group_rate(group) do
+    base = PayloadSupport.numeric(Map.get(group, "base_amount"))
+    tax = PayloadSupport.numeric(Map.get(group, "tax_amount"))
+
+    cond do
+      is_nil(base) or is_nil(tax) or PayloadSupport.zero_amount?(base) -> nil
       true -> Float.round(tax / base, 2)
     end
   end
@@ -173,6 +290,19 @@ defmodule Edoc.Etaxcore.E32Pipeline do
   defp total_amount(payload) do
     tax_totals_value(payload, "total_amount") ||
       PayloadSupport.numeric(PayloadSupport.payload_value(payload, "amount_total")) || 0
+  end
+
+  defp exchange_rate(payload) do
+    PayloadSupport.exchange_rate(payload)
+  end
+
+  defp foreign_currency_payload?(payload) do
+    case exchange_rate(payload) do
+      nil -> false
+      1 -> false
+      1.0 -> false
+      _rate -> true
+    end
   end
 
   defp tax_totals_value(payload, key) do
@@ -208,6 +338,26 @@ defmodule Edoc.Etaxcore.E32Pipeline do
     PayloadSupport.numeric(PayloadSupport.payload_value(item, "price_subtotal")) ||
       PayloadSupport.numeric(PayloadSupport.payload_value(item, "debit")) ||
       PayloadSupport.numeric(PayloadSupport.payload_value(item, "credit")) || 0
+  end
+
+  defp zero_tax_items_currency_total(payload) do
+    payload
+    |> invoice_items()
+    |> Enum.filter(&zero_tax_item?/1)
+    |> Enum.reduce(0, fn item, sum ->
+      sum + (PayloadSupport.numeric(PayloadSupport.payload_value(item, "price_subtotal")) || 0)
+    end)
+  end
+
+  defp string_or_default(value, default) do
+    value
+    |> to_string()
+    |> String.trim()
+    |> case do
+      "" -> default
+      "false" -> default
+      text -> text
+    end
   end
 
   defp add_amount(map, key, amount), do: Map.update(map, key, amount, &(&1 + amount))

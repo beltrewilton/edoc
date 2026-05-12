@@ -1,0 +1,130 @@
+{
+  "_action": "Send Webhook Notification (dgii-gw)(#630)",
+  "_id": 13169,
+  "_model": "account.move",
+  "amount_paid": 0,
+  "amount_residual": 110250.01,
+  "amount_tax": -12250,
+  "amount_total": 110250.01,
+  "amount_untaxed": 122500.01,
+  "commercial_partner_id": 326,
+  "company_id": 1,
+  "currency": "DOP",
+  "direccionEmisor": "Calle Central, Bloque E, Apt. E2-2A, Residencial Tierra Llana",
+  "display_name": "CINF/2026/05/0001",
+  "id": 13169,
+  "invoice_date": "2026-05-11",
+  "invoice_date_due": "2026-05-11",
+  "invoice_items": [
+    {
+      "account_id": [
+        174,
+        "51010100 Costos de Bienes"
+      ],
+      "credit": 0,
+      "debit": 122500.01,
+      "discount": 0,
+      "id": 38002,
+      "name": "Servicios de Consultoría OCM - Gestion de Comunicaciones",
+      "price_subtotal": 122500.01,
+      "price_total": 110250.01,
+      "price_unit": 122500.01,
+      "product_id": [
+        184,
+        "Servicios de Consultoría OCM"
+      ],
+      "quantity": 1,
+      "tax_ids": [
+        6,
+        28,
+        24
+      ],
+      "type": "consu"
+    }
+  ],
+  "invoice_line_ids": [
+    38002
+  ],
+  "invoice_origin": false,
+  "invoice_partner_display_name": "Katherine García M",
+  "invoice_payment_term_id": false,
+  "line_ids": [
+    38002,
+    38003,
+    38004,
+    38005,
+    38006
+  ],
+  "name": "CINF/2026/05/0001",
+  "nombreComercial": "Katherine García M",
+  "partner_id": 326,
+  "payment_reference": false,
+  "payment_state": "not_paid",
+  "razonSocialEmisor": "Katherine García M",
+  "ref": false,
+  "reversed_entry_id": false,
+  "rncEmisor": "224-0049550-7",
+  "status_in_payment": "not_paid",
+  "tablaTelefonoEmisor": [
+    "+1 829-887-3841"
+  ],
+  "tax_totals": {
+    "base_amount": 122500.01,
+    "base_amount_currency": 122500.01,
+    "company_currency_id": 74,
+    "company_currency_pd": 0.01,
+    "currency_id": 74,
+    "currency_pd": 0.01,
+    "display_in_company_currency": false,
+    "has_tax_groups": true,
+    "same_tax_base": true,
+    "subtotals": [
+      {
+        "base_amount": 122500.01,
+        "base_amount_currency": 122500.01,
+        "name": "Subtotal",
+        "tax_amount": -12250,
+        "tax_amount_currency": -12250,
+        "tax_groups": [
+          {
+            "base_amount": 122500.01,
+            "base_amount_currency": 122500.01,
+            "display_base_amount": 122500.01,
+            "display_base_amount_currency": 122500.01,
+            "group_label": false,
+            "group_name": "ITBIS",
+            "id": 18,
+            "involved_tax_ids": [
+              6,
+              24
+            ],
+            "tax_amount": 0,
+            "tax_amount_currency": 0
+          },
+          {
+            "base_amount": 122500.01,
+            "base_amount_currency": 122500.01,
+            "display_base_amount": 122500.01,
+            "display_base_amount_currency": 122500.01,
+            "group_label": false,
+            "group_name": "ISR",
+            "id": 20,
+            "involved_tax_ids": [
+              28
+            ],
+            "tax_amount": -12250,
+            "tax_amount_currency": -12250
+          }
+        ]
+      }
+    ],
+    "tax_amount": -12250,
+    "tax_amount_currency": -12250,
+    "total_amount": 110250.01,
+    "total_amount_currency": 110250.01
+  },
+  "tipo_cambio": 1,
+  "transaction_ids": [],
+  "x_studio_e_doc_bill": "E41",
+  "x_studio_e_doc_inv": false
+}

@@ -1,0 +1,77 @@
+{
+  "encabezado": {
+    "version": "1.0",
+    "idDoc": {
+      "tipoeCF": 41,
+      "encf": "E410000000160",
+      "fechaVencimientoSecuencia": "31-12-2028",
+      "FechaLimitePago": "18-05-2026",
+      "indicadorMontoGravado": 1,
+      "tipoPago": 2,
+      "tablaFormasPago": [],
+      "numeroCuentaPago": "",
+      "bancoPago": ""
+    },
+    "emisor": {
+      "rncEmisor": "132190068",
+      "razonSocialEmisor": "FLOVELZ SRL",
+      "nombreComercial": "FLOVELZ SRL",
+      "direccionEmisor": "N/A",
+      "tablaTelefonoEmisor": [],
+      "correoEmisor": "",
+      "webSite": "",
+      "numeroFacturaInterna": "",
+      "numeroPedidoInterno": "2026050001",
+      "fechaEmision": "11-05-2026"
+    },
+    "comprador": {
+      "rncComprador": "22400495507",
+      "razonSocialComprador": "Katherine García M"
+    },
+    "totales": {
+      "montoExento": "122500.01",
+      "impuestosAdicionales": [],
+      "montoTotal": "122500.01",
+      "totalISRRetencion": "12250.00",
+      "TotalITBISRetenido": "0.00"
+    }
+  },
+  "detallesItems": [
+    {
+      "numeroLinea": 1,
+      "tablaCodigosItem": [],
+      "indicadorFacturacion": 4,
+      "retencion": {
+        "indicadorAgenteRetencionoPercepcion": 1,
+        "montoISRRetenido": "12250.00"
+      },
+      "nombreItem": "Servicios de Consultoría OCM - Gestion de Comunicaciones",
+      "indicadorBienoServicio": 2,
+      "cantidadItem": 1,
+      "unidadMedida": "43",
+      "tablaSubcantidad": [],
+      "precioUnitarioItem": "122500.01",
+      "tablaSubDescuento": [],
+      "tablaSubRecargo": [],
+      "tablaImpuestoAdicional": [],
+      "otraMonedaDetalle": {
+        "precioOtraMoneda": "122500.01",
+        "montoItemOtraMoneda": "122500.01"
+      },
+      "montoItem": "122500.01"
+    }
+  ],
+  "subtotales": [
+    {
+      "numeroSubTotal": 1,
+      "descripcionSubtotal": "N/A",
+      "orden": 1,
+      "subTotalExento": "110250.01",
+      "montoSubTotal": "110250.01",
+      "lineas": 1
+    }
+  ],
+  "descuentosORecargos": [],
+  "paginacion": [],
+  "fechaHoraFirma": "11-05-2026 14:02:19"
+}

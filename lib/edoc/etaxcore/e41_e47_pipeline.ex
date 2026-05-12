@@ -12,6 +12,7 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
                      "montoExento",
                      "montoTotal",
                      "totalISRRetencion",
+                     "TotalITBISRetenido",
                      "tipoCambio",
                      "montoExentoOtraMoneda",
                      "montoTotalOtraMoneda",
@@ -33,15 +34,15 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
         "idDoc" => build_id_doc(payload, tipo_ecf, opts),
         "emisor" => build_emisor(payload, company),
         "comprador" => build_comprador(payload, company, tipo_ecf),
-        "totales" => build_totales(payload, retention_amount(payload, tipo_ecf))
+        "totales" => build_totales(payload, tipo_ecf, retention_amount(payload, tipo_ecf))
       },
-      "detallesItems" => build_detalles_items(payload, retention_amount(payload, tipo_ecf)),
+      "detallesItems" => build_detalles_items(payload, tipo_ecf, retention_amount(payload, tipo_ecf)),
       "subtotales" => build_subtotales(payload),
       "descuentosORecargos" => [],
       "paginacion" => [],
       "fechaHoraFirma" => build_fecha_hora_firma(payload, opts)
     }
-    |> maybe_put_otra_moneda(payload)
+    |> maybe_put_otra_moneda(payload, tipo_ecf)
     |> PayloadSupport.normalize_currency_fields(@currency_fields)
   end
 
@@ -56,7 +57,16 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
         value_as_string(payload, ["numeroCuentaPago", "numero_cuenta_pago"], ""),
       "bancoPago" => value_as_string(payload, ["bancoPago", "banco_pago"], "")
     }
+    |> maybe_put_e41_id_doc_fields(payload, tipo_ecf)
   end
+
+  defp maybe_put_e41_id_doc_fields(id_doc, payload, 41) do
+    id_doc
+    |> Map.put("indicadorMontoGravado", 1)
+    |> Map.put("tipoPago", PayloadSupport.numeric(PayloadSupport.payload_value(payload, "tipoPago")) || 2)
+  end
+
+  defp maybe_put_e41_id_doc_fields(id_doc, _payload, _tipo_ecf), do: id_doc
 
   defp build_emisor(payload, %Company{} = company) do
     %{
@@ -78,8 +88,30 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     supplier_comprador(payload, company)
   end
 
-  defp build_comprador(payload, %Company{} = company, 41) do
-    supplier_comprador(payload, company)
+  defp build_comprador(payload, %Company{} = _company, 41) do
+    %{
+      "rncComprador" =>
+        payload
+        |> PayloadSupport.value_from_keys([
+          "rncComprador",
+          "rnc_comprador",
+          "rncEmisor",
+          "rnc_emisor",
+          "partner_vat",
+          "vat"
+        ])
+        |> normalize_vat()
+        |> string_or_empty(),
+      "razonSocialComprador" =>
+        string_or_empty(
+          PayloadSupport.value_from_keys(payload, [
+            "razonSocialComprador",
+            "razon_social_comprador",
+            "razonSocialEmisor",
+            "razon_social_emisor"
+          ]) || customer_name(payload)
+        )
+    }
   end
 
   defp supplier_comprador(payload, %Company{} = _company) do
@@ -97,7 +129,19 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     }
   end
 
-  defp build_totales(payload, retention) do
+  defp build_totales(payload, 41, retention) do
+    monto_total = amount_exempt(payload)
+
+    %{
+      "montoExento" => monto_total,
+      "impuestosAdicionales" => [],
+      "montoTotal" => monto_total,
+      "totalISRRetencion" => retention,
+      "TotalITBISRetenido" => itbis_retention_amount(payload)
+    }
+  end
+
+  defp build_totales(payload, _tipo_ecf, retention) do
     monto_total = amount_total(payload)
 
     %{
@@ -108,9 +152,9 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     }
   end
 
-  defp build_detalles_items(payload, retention) do
+  defp build_detalles_items(payload, tipo_ecf, retention) do
     payload
-    |> invoice_items()
+    |> invoice_items(tipo_ecf)
     |> Enum.with_index(1)
     |> Enum.map(fn {item, index} ->
       quantity = item_quantity(item)
@@ -195,7 +239,11 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     end
   end
 
-  defp maybe_put_otra_moneda(%{"encabezado" => %{} = encabezado} = mapped_payload, payload) do
+  defp maybe_put_otra_moneda(
+         %{"encabezado" => %{} = encabezado} = mapped_payload,
+         payload,
+         tipo_ecf
+       ) do
     if foreign_currency_payload?(payload) do
       Map.put(
         mapped_payload,
@@ -203,7 +251,7 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
         Map.put(
           encabezado,
           "otraMoneda",
-          build_otra_moneda(payload, encabezado["totales"] || %{})
+          build_otra_moneda(payload, encabezado["totales"] || %{}, tipo_ecf)
         )
       )
     else
@@ -211,8 +259,8 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     end
   end
 
-  defp build_otra_moneda(payload, totales) do
-    total_amount_currency = tax_totals_value(payload, "total_amount_currency")
+  defp build_otra_moneda(payload, totales, tipo_ecf) do
+    exempt_amount_currency = otra_moneda_exempt_amount(payload, tipo_ecf)
 
     %{
       "tipoMoneda" =>
@@ -230,14 +278,23 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
       "montoExentoOtraMoneda",
       Map.has_key?(totales, "montoExento"),
       explicit_otra_amount(payload, ["montoExentoOtraMoneda", "monto_exento_otra_moneda"]) ||
-        total_amount_currency
+        exempt_amount_currency
     )
     |> maybe_put_otra_amount(
       "montoTotalOtraMoneda",
       Map.has_key?(totales, "montoTotal"),
       explicit_otra_amount(payload, ["montoTotalOtraMoneda", "monto_total_otra_moneda"]) ||
-        total_amount_currency
+        exempt_amount_currency
     )
+  end
+
+  defp otra_moneda_exempt_amount(payload, 41) do
+    tax_totals_value(payload, "base_amount_currency") ||
+      tax_totals_value(payload, "total_amount_currency")
+  end
+
+  defp otra_moneda_exempt_amount(payload, _tipo_ecf) do
+    tax_totals_value(payload, "total_amount_currency")
   end
 
   defp maybe_put_otra_amount(map, _key, false, _value), do: map
@@ -263,6 +320,15 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
           PayloadSupport.value_from_keys(payload, ["totalISRRetencion", "total_isr_retencion"])
         ) || 0
 
+  defp itbis_retention_amount(payload) do
+    payload
+    |> tax_groups()
+    |> Enum.filter(fn group -> Map.get(group, "group_name") == "ITBIS" end)
+    |> Enum.reduce(0, fn group, total ->
+      total + abs(PayloadSupport.numeric(Map.get(group, "tax_amount")) || 0)
+    end)
+  end
+
   defp positive_number(value) do
     case PayloadSupport.numeric(value) do
       nil -> nil
@@ -270,7 +336,9 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     end
   end
 
-  defp invoice_items(payload) do
+  defp invoice_items(payload), do: invoice_items(payload, 47)
+
+  defp invoice_items(payload, tipo_ecf) do
     items =
       payload
       |> PayloadSupport.payload_value("invoice_items")
@@ -279,7 +347,7 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
 
     if original_currency_items?(payload, items) do
       exchange_rate = exchange_rate(payload)
-      tax_excluded_factor = tax_excluded_currency_factor(payload)
+      tax_excluded_factor = tax_excluded_currency_factor(payload, tipo_ecf)
 
       Enum.map(items, fn item ->
         item
@@ -294,7 +362,9 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
   defp normalize_item(%{} = item), do: item
   defp normalize_item(_item), do: %{}
 
-  defp tax_excluded_currency_factor(payload) do
+  defp tax_excluded_currency_factor(_payload, 41), do: 1
+
+  defp tax_excluded_currency_factor(payload, _tipo_ecf) do
     base_amount_currency = tax_totals_value(payload, "base_amount_currency")
     total_amount_currency = tax_totals_value(payload, "total_amount_currency")
 
@@ -419,6 +489,14 @@ defmodule Edoc.Etaxcore.E41E47Pipeline do
     tax_totals_value(payload, "total_amount") ||
       PayloadSupport.numeric(PayloadSupport.payload_value(payload, "amount_total")) || 0
   end
+
+  defp amount_exempt(payload) do
+    tax_totals_value(payload, "base_amount") ||
+      PayloadSupport.numeric(PayloadSupport.payload_value(payload, "amount_untaxed")) ||
+      amount_total(payload)
+  end
+
+  defp tax_groups(payload), do: PayloadSupport.tax_groups(payload)
 
   defp tax_totals_value(payload, key) do
     payload

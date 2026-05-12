@@ -21,6 +21,27 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
     assert actual == expected
   end
 
+  test "does not add otraMoneda when tax totals ratio is one" do
+    input =
+      "E32001"
+      |> load_input()
+      |> local_currency_payload()
+
+    actual =
+      E32Pipeline.map(input, @company,
+        e_doc: "E320000000999",
+        fecha_hora_firma: "27-04-2026 20:45:56"
+      )
+
+    refute Map.has_key?(actual["encabezado"], "otraMoneda")
+    assert actual["encabezado"]["idDoc"]["tablaFormasPago"] == [
+             %{"formaPago" => 2, "montoPago" => "2000.00"}
+           ]
+
+    assert [%{"montoItem" => "2000.00", "precioUnitarioItem" => "2000.00"}] =
+             actual["detallesItems"]
+  end
+
   defp load_input(stem) do
     stem
     |> example_path("-Odoo.json")
@@ -42,5 +63,42 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
 
   defp strip_json_comments(json) do
     Regex.replace(~r{//.*$}m, json, "")
+  end
+
+  defp local_currency_payload(payload) do
+    payload
+    |> put_in(["tax_totals", "base_amount"], 2000)
+    |> put_in(["tax_totals", "base_amount_currency"], 2000)
+    |> put_in(["tax_totals", "total_amount"], 2000)
+    |> put_in(["tax_totals", "total_amount_currency"], 2000)
+    |> put_in(["tax_totals", "subtotals", Access.at(0), "base_amount"], 2000)
+    |> put_in(["tax_totals", "subtotals", Access.at(0), "base_amount_currency"], 2000)
+    |> put_in(["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "base_amount"], 2000)
+    |> put_in(
+      ["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "base_amount_currency"],
+      2000
+    )
+    |> put_in(
+      [
+        "tax_totals",
+        "subtotals",
+        Access.at(0),
+        "tax_groups",
+        Access.at(0),
+        "display_base_amount"
+      ],
+      2000
+    )
+    |> put_in(
+      [
+        "tax_totals",
+        "subtotals",
+        Access.at(0),
+        "tax_groups",
+        Access.at(0),
+        "display_base_amount_currency"
+      ],
+      2000
+    )
   end
 end
