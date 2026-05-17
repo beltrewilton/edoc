@@ -1,18 +1,18 @@
-// E32 with exchange currency and no tax - this is the expected ouput
+// E32 with exchange currency WITH TAX 18% - this is the expected ouput
 // this follows the foreign-currency rule
 {
   "encabezado": {
     "version": "1.0",
     "idDoc": {
       "tipoeCF": 32,
-      "encf": "E320000000179",
+      "encf": "E320000000190",
       "indicadorMontoGravado": 0,
       "tipoIngresos": "01",
       "tipoPago": 1,
       "tablaFormasPago": [
         {
           "formaPago": 2,
-          "montoPago": "371763.00"
+          "montoPago": "371763.00" //TODO: tax_totals.total_amount
         }
       ]
     },
@@ -51,14 +51,21 @@
       "numeroReferencia": 13167
     },
     "totales": {
-      "MontoExento": "371763.00",
+      "MontoGravadoI1": "315053.39",
+      "MontoGravadoTotal": "315053.39",
+      "ITBIS1": 18,
+      "totalITBIS": "56709.61",
+      "TotalITBIS1": "56709.61", 
       "impuestosAdicionales": [],
       "montoTotal": "371763.00"
     },
     "otraMoneda": {
       "tipoMoneda": "USD",
-      "tipoCambio": "59.01",
-      "montoExentoOtraMoneda": "6300.00",
+      "tipoCambio": "59.01",  //TODO: tax_totals.total_amount / tax_totals.total_amount_currency
+      "MontoGravado1OtraMoneda": "5338.98",
+      "MontoGravadoTotalOtraMoneda": "5338.98",
+      "totalITBISOtraMoneda": "961.02",
+      "TOTALITBIS1OtraMoneda": "961.02",
       "impuestosAdicionalesOtraMoneda": [],
       "montoTotalOtraMoneda": "6300.00"
     }
@@ -67,17 +74,17 @@
     {
       "numeroLinea": 1,
       "tablaCodigosItem": [],
-      "indicadorFacturacion": 4,
-      "nombreItem": "Consultor SAP - Juan Carlos Alvarez",
+      "indicadorFacturacion": 1,
+      "nombreItem": "Consultor SAP - Priscila",
       "indicadorBienoServicio": 2,
       "cantidadItem": 126,
       "unidadMedida": "43",
       "tablaSubcantidad": [],
-      "precioUnitarioItem": "2950.50",
+      "precioUnitarioItem": "2500.42",
       "tablaSubDescuento": [],
       "tablaSubRecargo": [],
       "tablaImpuestoAdicional": [],
-      "montoItem": "371763.00"
+      "montoItem": "315053.39"
     }
   ],
   "subtotales": [],

@@ -1,18 +1,18 @@
 // E32 with exchange currency and no tax - this is the expected ouput
-// this follows the foreign-currency rule
+// BUT: "cantidadItem": 5
 {
   "encabezado": {
     "version": "1.0",
     "idDoc": {
       "tipoeCF": 32,
-      "encf": "E320000000179",
+      "encf": "E320000000180",
       "indicadorMontoGravado": 0,
       "tipoIngresos": "01",
       "tipoPago": 1,
       "tablaFormasPago": [
         {
           "formaPago": 2,
-          "montoPago": "371763.00"
+          "montoPago": "14752.50"
         }
       ]
     },
@@ -30,8 +30,7 @@
       "fechaEmision": "11-05-2026"
     },
     "comprador": {
-      "rncComprador": "",
-      "IdentificadorExtranjero": "FA0922323", //TODO: This field must be filled and generated in if the e-CF is E32 for more than  250000.00 (tax_totals.total_amount) and "rncComprador" should be generated with blank string
+      "rncComprador": "",   //TODO: the e-CF is E32 for less than  250000.00 (tax_totals.total_amount) "IdentificadorExtranjero" is not required and "rncComprador" should be generated with blank string
       "razonSocialComprador": "C2S Consulting",
       "contactoComprador": "C2S Consulting",
       "tablaTelefonoComprador": [
@@ -51,9 +50,9 @@
       "numeroReferencia": 13167
     },
     "totales": {
-      "MontoExento": "371763.00",
+      "MontoExento": "14752.50",
       "impuestosAdicionales": [],
-      "montoTotal": "371763.00"
+      "montoTotal": "14752.50"
     },
     "otraMoneda": {
       "tipoMoneda": "USD",
@@ -70,14 +69,14 @@
       "indicadorFacturacion": 4,
       "nombreItem": "Consultor SAP - Juan Carlos Alvarez",
       "indicadorBienoServicio": 2,
-      "cantidadItem": 126,
+      "cantidadItem": 5,
       "unidadMedida": "43",
       "tablaSubcantidad": [],
       "precioUnitarioItem": "2950.50",
       "tablaSubDescuento": [],
       "tablaSubRecargo": [],
       "tablaImpuestoAdicional": [],
-      "montoItem": "371763.00"
+      "montoItem": "14752.50"
     }
   ],
   "subtotales": [],

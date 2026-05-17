@@ -6,9 +6,9 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
 
   @company %Company{company_name: "FLOVELZ SRL", rnc: "132190068"}
 
-  test "E32001-Odoo.json maps to E32001.json" do
-    input = load_input("E32001")
-    expected = load_expected("E32001")
+  test "E32002-Odoo.json maps to E32002.json" do
+    input = load_input("E32002")
+    expected = load_expected("E32002")
     edoc = expected["encabezado"]["idDoc"]["encf"]
     fecha_hora_firma = expected["fechaHoraFirma"]
 
@@ -23,7 +23,7 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
 
   test "does not add otraMoneda when tax totals ratio is one" do
     input =
-      "E32001"
+      "E32002"
       |> load_input()
       |> local_currency_payload()
 
@@ -46,6 +46,7 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
     stem
     |> example_path("-Odoo.json")
     |> File.read!()
+    |> strip_json_comments()
     |> Jason.decode!()
   end
 
@@ -69,14 +70,29 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
     payload
     |> put_in(["tax_totals", "base_amount"], 2000)
     |> put_in(["tax_totals", "base_amount_currency"], 2000)
+    |> put_in(["tax_totals", "tax_amount"], 0)
+    |> put_in(["tax_totals", "tax_amount_currency"], 0)
     |> put_in(["tax_totals", "total_amount"], 2000)
     |> put_in(["tax_totals", "total_amount_currency"], 2000)
     |> put_in(["tax_totals", "subtotals", Access.at(0), "base_amount"], 2000)
     |> put_in(["tax_totals", "subtotals", Access.at(0), "base_amount_currency"], 2000)
-    |> put_in(["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "base_amount"], 2000)
+    |> put_in(["tax_totals", "subtotals", Access.at(0), "tax_amount"], 0)
+    |> put_in(["tax_totals", "subtotals", Access.at(0), "tax_amount_currency"], 0)
+    |> put_in(
+      ["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "base_amount"],
+      2000
+    )
     |> put_in(
       ["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "base_amount_currency"],
       2000
+    )
+    |> put_in(
+      ["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "tax_amount"],
+      0
+    )
+    |> put_in(
+      ["tax_totals", "subtotals", Access.at(0), "tax_groups", Access.at(0), "tax_amount_currency"],
+      0
     )
     |> put_in(
       [
@@ -100,5 +116,8 @@ defmodule Edoc.Etaxcore.E32PipelineExamplesTest do
       ],
       2000
     )
+    |> put_in(["invoice_items", Access.at(0), "quantity"], 1)
+    |> put_in(["invoice_items", Access.at(0), "price_unit"], 2000)
+    |> put_in(["invoice_items", Access.at(0), "price_subtotal"], 2000)
   end
 end

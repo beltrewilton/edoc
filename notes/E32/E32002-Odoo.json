@@ -1,5 +1,3 @@
-// E32 this is a payload with USD exchange
-
 {
   "_action": "Send Webhook Notification (dgii-gw)(#630)",
   "_id": 13167,
@@ -14,7 +12,7 @@
   "currency": "USD",
   "direccionComprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
   "direccion_comprador": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
-  "display_name": "INV/2026/05/0004",
+  "display_name": "INV/2026/05/0004 (E320000000161)",
   "id": 13167,
   "invoice_date": "2026-05-11",
   "invoice_date_due": "2026-05-11",
@@ -56,11 +54,13 @@
   "name": "INV/2026/05/0004",
   "partner_address": "Calle 1 Metro Office Park, Street 1, Suite 205, Lot 6, 00968 Guaynabo, Puerto Rico",
   "partner_id": 312,
+  "partner_vat": "131362702",
   "payment_reference": "INV/2026/05/0004",
   "payment_state": "not_paid",
   "razonSocialComprador": "C2S Consulting",
-  "ref": "",
+  "ref": "E320000000161",
   "reversed_entry_id": false,
+  "rncComprador": "131362702",
   "status_in_payment": "not_paid",
   "tablaTelefonoComprador": [
     "+1 787-620-8188"
@@ -82,7 +82,7 @@
         "name": "Subtotal",
         "tax_amount": 0,
         "tax_amount_currency": 0,
-        "tax_groups": [
+        "tax_groups": [        //TODO: has tax-groups but evidence of no-tax
           {
             "base_amount": 371763,
             "base_amount_currency": 6300,
@@ -94,8 +94,8 @@
             "involved_tax_ids": [
               1
             ],
-            "tax_amount": 0,
-            "tax_amount_currency": 0
+            "tax_amount": 0,          //TODO:   evidence of no-tax
+            "tax_amount_currency": 0  //TODO:   evidence of no-tax
           }
         ]
       }
