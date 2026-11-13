@@ -1,0 +1,6 @@
+[mcp_servers.shadcn]
+command = "npx"
+args = ["-y", "shadcn@canary", "registry:mcp"]
+
+[mcp_servers.shadcn.env]
+REGISTRY_URL = "http://127.0.0.1:8123/tweakcn_com_registry.json"

@@ -15,6 +15,7 @@ defmodule EdocWeb.Layouts do
   attr :page_title, :string, default: nil
 
   slot :inner_block, required: true
+  slot :topbar_actions
 
   def app(assigns) do
     section = section_from_title(assigns[:page_title])
@@ -119,7 +120,7 @@ defmodule EdocWeb.Layouts do
             </aside>
 
             <div class="min-w-0">
-              <header class="border-b border-slate-200/80 bg-white/85 px-4 py-3 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-900/65">
+              <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 px-4 py-3 backdrop-blur sm:px-6 dark:border-slate-800 dark:bg-slate-900/65">
                 <div class="flex flex-wrap items-center gap-3">
                   <div class="relative min-w-[14rem] flex-1 max-w-2xl">
                     <.icon
@@ -137,6 +138,7 @@ defmodule EdocWeb.Layouts do
                   </div>
 
                   <div class="ml-auto flex items-center gap-2">
+                    {render_slot(@topbar_actions)}
                     <.theme_toggle />
 
                     <%= if @signed_in? do %>
@@ -274,6 +276,7 @@ defmodule EdocWeb.Layouts do
     down = String.downcase(title)
 
     cond do
+      String.contains?(down, "theme") or String.contains?(down, "lab") -> :themes
       String.contains?(down, "transaction") -> :transactions
       String.contains?(down, "company") or String.contains?(down, "companies") -> :companies
       String.contains?(down, "tax") -> :tax_sequences
